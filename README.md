@@ -26,6 +26,12 @@ model and the ground around you stay clear.
 - A violet arc on an outer radius at the bottom is the Judgement cooldown. It
   shrinks toward the middle as the cooldown runs and vanishes when it is ready,
   so an empty bottom means Judgement is up.
+- A teal arc is the Crusader Strike cooldown, behaving the same way. Where it
+  sits is up to you, see below.
+
+Those two arcs plus the last safe cast post answer the whole question between
+them: an empty arc means the ability is up, and a bright post means you can
+still spend a global cooldown on it without losing the twist.
 
 The window and the post are both drawn shifted back by your latency, because the
 press has to leave your client one round trip before the server checks the seal.
@@ -50,9 +56,44 @@ a quiet outline in your seal colour with no pip, no window and no ticks. That
 tells you which seal is up while you run in, without anything moving to pull
 your eye.
 
+## Crusader Strike placement
+
+Four layouts, all reachable from the options panel or `/rth csplace`.
+
+| Mode | Layout |
+| --- | --- |
+| `stacked` | Second arc just outside Judgement. Both cooldowns in one glance zone, and Judgement's geometry is untouched. The default. |
+| `mirrored` | Its own arc on the right of the ring. Position alone tells them apart, at the cost of a second place to look. |
+| `split` | One bottom band divided at six o'clock, each half retracting toward the seam. One object, but half the resolution each. |
+| `nested` | Inside the ring. Uses otherwise empty space, but can land on your feet at close camera distances. |
+
+Crusader Strike defaults to a shorter span than Judgement so the two silhouettes
+differ before colour resolves.
+
+## Options panel
+
+Three ways in: left click the minimap button, type `/rth`, or find RetTwistHUD
+in the interface addon options. Every setting in the panel is also a slash
+command and the two stay in sync, so you can use whichever suits.
+
+The panel is built inside a `pcall`. If a Blizzard template it depends on is
+missing or has changed shape on your client, the panel fails on its own and
+prints a message, and the ring and every slash command keep working.
+
+## Minimap button
+
+Left click opens the settings, right click unlocks the ring so you can drag it
+into place, and dragging the button itself moves it around the minimap edge.
+`/rth minimap off` hides it, or use the checkbox in the panel.
+
+It is written out rather than pulled in from LibDBIcon. The addon has no other
+dependencies and a minimap button is about a hundred lines, so vendoring four
+library files to get one would cost more than it saves. Its icon is borrowed
+from a spell the addon already looks up, so the art path cannot go stale.
+
 ## Commands
 
-`/rth` on its own lists everything.
+`/rth help` lists everything.
 
 | Command | Effect |
 | --- | --- |
@@ -70,7 +111,10 @@ your eye.
 | `/rth gcd on\|off` | Paint the current global cooldown on the ring. |
 | `/rth lastsafe on\|off` | The last safe cast post. |
 | `/rth judgement on\|off` | The Judgement cooldown arc. |
+| `/rth crusader on\|off` | The Crusader Strike cooldown arc. |
+| `/rth csplace MODE` | `stacked`, `mirrored`, `split` or `nested`. |
 | `/rth show MODE` | When the ring is visible. See below. |
+| `/rth minimap on\|off` | Show the minimap button. |
 | `/rth swap` | Swap which seal is the carrier and which is the finisher. |
 | `/rth reset` | Restore every default. |
 
@@ -150,5 +194,7 @@ event to sync against. It corrects itself on the first landed swing.
 | --- | --- |
 | `Config.lua` | Defaults, saved variables, palette, slash commands |
 | `Swing.lua` | Swing timer reconstruction |
-| `Ring.lua` | The ring, drawn as coloured segment textures |
+| `Ring.lua` | The ring and the cooldown arcs, as coloured segment textures |
+| `Options.lua` | The interface options panel |
+| `MinimapButton.lua` | The minimap button |
 | `Core.lua` | Seal and cooldown state, window logic, event wiring |
