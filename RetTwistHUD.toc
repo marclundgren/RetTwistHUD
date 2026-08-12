@@ -1,9 +1,14 @@
 ## Interface: 20506, 20505
 ## Title: RetTwistHUD
 ## Notes: Minimal centred swing ring for retribution paladin seal twisting.
-## Version: 1.0.0
+## Author: Marc Lundgren
+## Version: @project-version@
 ## SavedVariables: RetTwistHUDDB
 ## DefaultState: enabled
+## X-Category: Combat
+## X-License: MIT
+## X-Website: https://github.com/marclundgren/RetTwistHUD
+## X-Curse-Project-ID: 1650039
 
 Config.lua
 Swing.lua

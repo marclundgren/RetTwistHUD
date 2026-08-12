@@ -194,6 +194,30 @@ landing is also the instant the next swing begins, so every `SWING_DAMAGE` or
 The one unavoidable gap is the very first swing of a pull, which has no prior
 event to sync against. It corrects itself on the first landed swing.
 
+## Releasing
+
+Tagging a version builds the zip and uploads it to CurseForge, via the
+BigWigs packager in `.github/workflows/release.yml`.
+
+```
+git tag -a v1.0.1 -m "1.0.1"
+git push origin v1.0.1
+```
+
+`## Version:` in the TOC is `@project-version@`, which the packager replaces
+with the tag. That means a plain `git clone` shows the placeholder rather than a
+number; only packaged builds carry a real version.
+
+Two things have to be in place first, both one-time:
+
+- A `CF_API_KEY` secret on the GitHub repo, from your CurseForge API tokens page
+- The numeric project ID filled in after `## X-Curse-Project-ID:` in the TOC,
+  from the CurseForge project page
+
+If a release lands under the wrong game version on CurseForge, pin the flavour
+by uncommenting the `args: -g bcc` block in the workflow rather than relying on
+the `## Interface:` line to imply it.
+
 ## Files
 
 | File | Contents |
