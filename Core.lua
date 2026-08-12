@@ -324,6 +324,11 @@ events:SetScript("OnEvent", function(self, event, ...)
 			ns.Print("options panel unavailable, slash commands still work: " .. tostring(err))
 		end
 
+		local pinned, mmErr = pcall(ns.MinimapButton.Build, ns.MinimapButton)
+		if not pinned then
+			ns.Print("minimap button unavailable: " .. tostring(mmErr))
+		end
+
 		RefreshSeal()
 		RefreshCooldown()
 		RefreshUsable()

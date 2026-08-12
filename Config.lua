@@ -49,6 +49,7 @@ local defaults = {
 	crusaderPlacement = "stacked", -- stacked | mirrored | split | nested
 	-- always | combat | seal | either | both
 	showMode = "either",
+	minimap = { angle = 200, hide = false },
 	carrierIsCommand = true, -- carrier = Seal of Command, finisher = Seal of Blood
 }
 
@@ -95,6 +96,19 @@ function ns.InitDB()
 	return ns.db
 end
 
+-- Wiped in place rather than replaced, because the options panel holds a
+-- reference to this table and a new one would leave it editing a ghost.
+function ns.ResetDefaults()
+	wipe(RetTwistHUDDB)
+	ns.InitDB()
+	if ns.Ring then
+		ns.Ring:Rebuild()
+		ns.Ring:ApplyLock()
+	end
+	if ns.MinimapButton then ns.MinimapButton:Update() end
+	if ns.Options and ns.Options.Refresh then ns.Options.Refresh() end
+end
+
 local function Print(msg)
 	DEFAULT_CHAT_FRAME:AddMessage("|cffefa027RetTwistHUD|r " .. msg)
 end
@@ -119,6 +133,7 @@ local function Usage()
 	Print("  |cffb4b2a9/rth crusader|r on|off  arc for the crusader strike cooldown")
 	Print("  |cffb4b2a9/rth csplace|r MODE  stacked, mirrored, split, nested")
 	Print("  |cffb4b2a9/rth show|r MODE     always, combat, seal, either, both")
+	Print("  |cffb4b2a9/rth minimap|r on|off show the minimap button")
 	Print("  |cffb4b2a9/rth swap|r          swap which seal is carrier and which is finisher")
 	Print("  |cffb4b2a9/rth reset|r         restore every default")
 end
@@ -275,14 +290,15 @@ local function HandleSlash(input)
 		ns.ResolveSpells()
 		Print("carrier is now " .. tostring(ns.spells.carrierName or "unknown")
 			.. ", finisher is " .. tostring(ns.spells.finisherName or "unknown") .. ".")
+	elseif cmd == "minimap" then
+		local b = ToBool(rest:lower())
+		if b == nil then Print("minimap takes on or off.") else
+			db.minimap.hide = not b
+			ns.MinimapButton:Update()
+			Print("minimap button " .. (b and "shown." or "hidden."))
+		end
 	elseif cmd == "reset" then
-		-- Wiped in place rather than replaced, because the options panel holds a
-		-- reference to this table and a new one would leave it editing a ghost.
-		wipe(RetTwistHUDDB)
-		ns.InitDB()
-		ns.Ring:Rebuild()
-		ns.Ring:ApplyLock()
-		if ns.Options and ns.Options.Refresh then ns.Options.Refresh() end
+		ns.ResetDefaults()
 		Print("defaults restored.")
 	else
 		Usage()

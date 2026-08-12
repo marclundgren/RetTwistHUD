@@ -72,12 +72,24 @@ differ before colour resolves.
 
 ## Options panel
 
-`/rth` on its own opens it, or find RetTwistHUD in the interface addon options.
-Everything is also a slash command; `/rth help` lists them.
+Three ways in: left click the minimap button, type `/rth`, or find RetTwistHUD
+in the interface addon options. Every setting in the panel is also a slash
+command and the two stay in sync, so you can use whichever suits.
 
 The panel is built inside a `pcall`. If a Blizzard template it depends on is
 missing or has changed shape on your client, the panel fails on its own and
 prints a message, and the ring and every slash command keep working.
+
+## Minimap button
+
+Left click opens the settings, right click unlocks the ring so you can drag it
+into place, and dragging the button itself moves it around the minimap edge.
+`/rth minimap off` hides it, or use the checkbox in the panel.
+
+It is written out rather than pulled in from LibDBIcon. The addon has no other
+dependencies and a minimap button is about a hundred lines, so vendoring four
+library files to get one would cost more than it saves. Its icon is borrowed
+from a spell the addon already looks up, so the art path cannot go stale.
 
 ## Commands
 
@@ -102,6 +114,7 @@ prints a message, and the ring and every slash command keep working.
 | `/rth crusader on\|off` | The Crusader Strike cooldown arc. |
 | `/rth csplace MODE` | `stacked`, `mirrored`, `split` or `nested`. |
 | `/rth show MODE` | When the ring is visible. See below. |
+| `/rth minimap on\|off` | Show the minimap button. |
 | `/rth swap` | Swap which seal is the carrier and which is the finisher. |
 | `/rth reset` | Restore every default. |
 
@@ -183,4 +196,5 @@ event to sync against. It corrects itself on the first landed swing.
 | `Swing.lua` | Swing timer reconstruction |
 | `Ring.lua` | The ring and the cooldown arcs, as coloured segment textures |
 | `Options.lua` | The interface options panel |
+| `MinimapButton.lua` | The minimap button |
 | `Core.lua` | Seal and cooldown state, window logic, event wiring |

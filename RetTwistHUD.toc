@@ -9,4 +9,5 @@ Config.lua
 Swing.lua
 Ring.lua
 Options.lua
+MinimapButton.lua
 Core.lua
