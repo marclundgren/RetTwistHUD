@@ -18,6 +18,7 @@ ns.colors = {
 	impact = { 1.00, 1.00, 0.98 }, -- the tick at the top of the ring
 	lastSafe = { 0.45, 0.72, 1.00 }, -- last point you can start a gcd spell
 	judgement = { 0.72, 0.64, 1.00 }, -- judgement cooldown arc
+	crusader = { 0.35, 0.88, 0.85 }, -- crusader strike cooldown arc
 }
 
 -- Alpha applied to the part of the ring the swing has not reached yet.
@@ -42,6 +43,10 @@ local defaults = {
 	showLastSafe = true,
 	showJudgement = true,
 	judgementSpan = 55, -- degrees the judgement arc covers when freshly used
+	showCrusader = true,
+	crusaderSpan = 45, -- deliberately shorter than judgement so the two
+	-- silhouettes differ before colour resolves
+	crusaderPlacement = "stacked", -- stacked | mirrored | split | nested
 	-- always | combat | seal | either | both
 	showMode = "either",
 	carrierIsCommand = true, -- carrier = Seal of Command, finisher = Seal of Blood
@@ -54,6 +59,15 @@ ns.SHOW_MODES = {
 	either = "in combat or with a seal up",
 	both = "in combat and with a seal up",
 }
+ns.SHOW_MODE_ORDER = { "always", "combat", "seal", "either", "both" }
+
+ns.CS_PLACEMENTS = {
+	stacked = "stacked just outside judgement",
+	mirrored = "mirrored on the right side",
+	split = "sharing one band with judgement",
+	nested = "nested inside the ring",
+}
+ns.CS_PLACEMENT_ORDER = { "stacked", "mirrored", "split", "nested" }
 
 local function CopyDefaults(src, dst)
 	if type(dst) ~= "table" then dst = {} end
@@ -87,7 +101,7 @@ end
 ns.Print = Print
 
 local function Usage()
-	Print("commands:")
+	Print("|cffb4b2a9/rth|r on its own opens the options panel. Commands:")
 	Print("  |cffb4b2a9/rth lock|r          toggle dragging the ring around")
 	Print("  |cffb4b2a9/rth test|r          fake swings so you can position it out of combat")
 	Print("  |cffb4b2a9/rth radius|r N      distance from your character, default 92")
@@ -102,6 +116,8 @@ local function Usage()
 	Print("  |cffb4b2a9/rth gcd|r on|off    paint the current global cooldown on the ring")
 	Print("  |cffb4b2a9/rth lastsafe|r on|off  mark the last gcd spell you can start")
 	Print("  |cffb4b2a9/rth judgement|r on|off arc for the judgement cooldown")
+	Print("  |cffb4b2a9/rth crusader|r on|off  arc for the crusader strike cooldown")
+	Print("  |cffb4b2a9/rth csplace|r MODE  stacked, mirrored, split, nested")
 	Print("  |cffb4b2a9/rth show|r MODE     always, combat, seal, either, both")
 	Print("  |cffb4b2a9/rth swap|r          swap which seal is carrier and which is finisher")
 	Print("  |cffb4b2a9/rth reset|r         restore every default")
@@ -121,7 +137,12 @@ local function HandleSlash(input)
 	cmd = (cmd or ""):lower()
 	local num = tonumber(rest)
 
-	if cmd == "" or cmd == "help" then
+	if cmd == "" or cmd == "options" or cmd == "config" then
+		if not (ns.Options and ns.Options:Open()) then
+			Print("the options panel is not available, falling back to commands.")
+			Usage()
+		end
+	elseif cmd == "help" then
 		Usage()
 	elseif cmd == "lock" then
 		db.locked = not db.locked
@@ -219,6 +240,25 @@ local function HandleSlash(input)
 			ns.Ring:Rebuild()
 			Print("judgement arc " .. (b and "on." or "off."))
 		end
+	elseif cmd == "crusader" or cmd == "cs" then
+		local b = ToBool(rest:lower())
+		if b == nil then Print("crusader takes on or off.") else
+			db.showCrusader = b
+			ns.Ring:Rebuild()
+			Print("crusader strike arc " .. (b and "on." or "off."))
+		end
+	elseif cmd == "csplace" then
+		local mode = rest:lower()
+		if ns.CS_PLACEMENTS[mode] then
+			db.crusaderPlacement = mode
+			ns.Ring:Rebuild()
+			Print("crusader strike " .. ns.CS_PLACEMENTS[mode] .. ".")
+		else
+			Print("csplace takes one of: stacked, mirrored, split, nested.")
+			for _, k in ipairs(ns.CS_PLACEMENT_ORDER) do
+				Print("  |cffb4b2a9" .. k .. "|r  " .. ns.CS_PLACEMENTS[k])
+			end
+		end
 	elseif cmd == "show" then
 		local mode = rest:lower()
 		if ns.SHOW_MODES[mode] then
@@ -236,10 +276,13 @@ local function HandleSlash(input)
 		Print("carrier is now " .. tostring(ns.spells.carrierName or "unknown")
 			.. ", finisher is " .. tostring(ns.spells.finisherName or "unknown") .. ".")
 	elseif cmd == "reset" then
-		RetTwistHUDDB = nil
+		-- Wiped in place rather than replaced, because the options panel holds a
+		-- reference to this table and a new one would leave it editing a ghost.
+		wipe(RetTwistHUDDB)
 		ns.InitDB()
 		ns.Ring:Rebuild()
 		ns.Ring:ApplyLock()
+		if ns.Options and ns.Options.Refresh then ns.Options.Refresh() end
 		Print("defaults restored.")
 	else
 		Usage()

@@ -15,13 +15,17 @@ ns.state = {
 	lastSafeP = nil, -- latest point a gcd spell can still be started
 	lastSafePassed = false,
 	judgeFrac = nil, -- judgement cooldown remaining, 1 just used, nil ready
+	crusaderFrac = nil, -- same for crusader strike
 }
 
 ns.spells = {}
 ns.gcdEnd = 0
 ns.gcdLength = 1.5 -- learned from the first real gcd we observe
-ns.judgeStart = 0
-ns.judgeDur = 0
+-- Tracked ability cooldowns, keyed the same way the arcs are.
+ns.cooldowns = {
+	judgement = { start = 0, duration = 0 },
+	crusader = { start = 0, duration = 0 },
+}
 ns.noMana = false
 ns.testing = false
 
@@ -33,6 +37,7 @@ local TEST_SPEED = 3.6
 local COMMAND_IDS = { 20375 }
 local BLOOD_IDS = { 31892, 348700 }
 local JUDGEMENT_IDS = { 20271 }
+local CRUSADER_IDS = { 35395 }
 
 -- These two have C_Spell replacements on newer clients. TBC still has the
 -- globals, but falling back costs nothing and stops a nil call from taking the
@@ -86,8 +91,10 @@ function ns.ResolveSpells()
 	end
 	sp.finisherSlot = FindSpellBookSlot(sp.finisherName)
 
-	sp.judgeName = FirstKnownName(JUDGEMENT_IDS)
-	sp.judgeSlot = FindSpellBookSlot(sp.judgeName)
+	sp.judgementName = FirstKnownName(JUDGEMENT_IDS)
+	sp.judgementSlot = FindSpellBookSlot(sp.judgementName)
+	sp.crusaderName = FirstKnownName(CRUSADER_IDS)
+	sp.crusaderSlot = FindSpellBookSlot(sp.crusaderName)
 end
 
 local function GetBuffName(index)
@@ -131,18 +138,21 @@ local function RefreshCooldown()
 		ns.gcdEnd = 0
 	end
 
-	-- Judgement's own cooldown is 8 or 10s depending on talents, so anything at
-	-- or under the gcd length is just the gcd and not worth drawing.
-	local js, jd
-	if sp.judgeSlot then
-		js, jd = SpellCooldown(sp.judgeSlot, BOOKTYPE)
-	elseif sp.judgeName then
-		js, jd = SpellCooldown(sp.judgeName)
-	end
-	if js and jd and jd > 1.5 then
-		ns.judgeStart, ns.judgeDur = js, jd
-	else
-		ns.judgeStart, ns.judgeDur = 0, 0
+	-- Judgement is 8 or 10s and Crusader Strike is 6s, so anything at or under
+	-- the gcd length is just the gcd and not a real cooldown worth drawing.
+	for key, cd in pairs(ns.cooldowns) do
+		local s, d
+		local slot, name = sp[key .. "Slot"], sp[key .. "Name"]
+		if slot then
+			s, d = SpellCooldown(slot, BOOKTYPE)
+		elseif name then
+			s, d = SpellCooldown(name)
+		end
+		if s and d and d > 1.5 then
+			cd.start, cd.duration = s, d
+		else
+			cd.start, cd.duration = 0, 0
+		end
 	end
 end
 
@@ -174,14 +184,17 @@ local function Latency()
 	return (lag or 0) / 1000
 end
 
-local function ComputeJudgement(now, st)
-	st.judgeFrac = nil
-	if not ns.db.showJudgement then return end
-	local s, d = ns.judgeStart, ns.judgeDur
-	if d > 0 then
-		local remaining = (s + d) - now
-		if remaining > 0 then st.judgeFrac = remaining / d end
-	end
+local function Fraction(cd, now)
+	if cd.duration <= 0 then return nil end
+	local remaining = (cd.start + cd.duration) - now
+	if remaining <= 0 then return nil end
+	return remaining / cd.duration
+end
+
+local function ComputeCooldowns(now, st)
+	local db = ns.db
+	st.judgeFrac = db.showJudgement and Fraction(ns.cooldowns.judgement, now) or nil
+	st.crusaderFrac = db.showCrusader and Fraction(ns.cooldowns.crusader, now) or nil
 end
 
 local function Allowed(mode, inCombat, hasSeal)
@@ -199,7 +212,7 @@ local function UpdateState(now)
 	-- an invisible frame around whenever you are not mid swing.
 	local preview = ns.testing or not db.locked
 
-	ComputeJudgement(now, st)
+	ComputeCooldowns(now, st)
 
 	-- Kept apart from st.seal, which only ever reflects real auras, so that
 	-- leaving preview cannot strand a fake seal on the ring.
@@ -303,6 +316,14 @@ events:SetScript("OnEvent", function(self, event, ...)
 		ns.swing:Init()
 		ns.ResolveSpells()
 		ns.Ring:Create()
+
+		-- The panel leans on a lot of Blizzard templates. If any of them differ
+		-- on this client it must fail alone, not take the ring down with it.
+		local built, err = pcall(ns.Options.Build, ns.Options)
+		if not built then
+			ns.Print("options panel unavailable, slash commands still work: " .. tostring(err))
+		end
+
 		RefreshSeal()
 		RefreshCooldown()
 		RefreshUsable()

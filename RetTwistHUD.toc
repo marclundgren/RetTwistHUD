@@ -8,4 +8,5 @@
 Config.lua
 Swing.lua
 Ring.lua
+Options.lua
 Core.lua

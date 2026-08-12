@@ -6,6 +6,7 @@ ns.Ring = Ring
 local TEXTURE = "Interface\\Buttons\\WHITE8X8"
 local TAU = math.pi * 2
 local PI = math.pi
+local HALF_PI = math.pi / 2
 local sin, cos, max, min, abs, rad, ceil = math.sin, math.cos, math.max, math.min, math.abs, math.rad, math.ceil
 
 -- Older clients do not all support Texture:SetRotation. If it is missing the
@@ -15,10 +16,13 @@ local canRotate
 local frame, pip, pipBg, tick, tickBg, lastSafe, lastSafeBg, hint
 local segments = {}
 local track = {}
-local judgeSegs = {}
-local judgeTrack = {}
-local judgeCount = 0
 local shownAlpha = 0
+
+-- Cooldown arcs, keyed to match ns.cooldowns.
+local arcs = {
+	judgement = { segs = {}, track = {}, count = 0, drain = "center" },
+	crusader = { segs = {}, track = {}, count = 0, drain = "center" },
+}
 
 local function Paint(tex, r, g, b, a)
 	if tex.cr == r and tex.cg == g and tex.cb == b and tex.ca == a then return end
@@ -40,6 +44,115 @@ local function Backing(parent, sublevel)
 	local tex = parent:CreateTexture(nil, "BACKGROUND", nil, sublevel or 0)
 	tex:SetTexture(TEXTURE)
 	return tex
+end
+
+-- Where each cooldown arc sits. Angles run clockwise from the top of the ring,
+-- so PI is the bottom and HALF_PI is the right side.
+local function ArcLayouts(db)
+	local r, t, pad = db.radius, db.thickness, db.trackPad
+	local jr = r + t * 3.2 + pad
+	local jSpan = rad(db.judgementSpan)
+	local cSpan = rad(db.crusaderSpan)
+
+	local j = { radius = jr, a0 = PI - jSpan, a1 = PI + jSpan, drain = "center" }
+	local c
+
+	local place = db.crusaderPlacement
+	if place == "mirrored" then
+		c = { radius = jr, a0 = HALF_PI - cSpan, a1 = HALF_PI + cSpan, drain = "center" }
+	elseif place == "split" then
+		-- One band divided at the bottom, each half retracting toward the seam.
+		j = { radius = jr, a0 = PI, a1 = PI + jSpan, drain = "fromA0" }
+		c = { radius = jr, a0 = PI, a1 = PI - cSpan, drain = "fromA0" }
+	elseif place == "nested" then
+		c = { radius = r - t * 3.2 - pad, a0 = PI - cSpan, a1 = PI + cSpan, drain = "center" }
+	else
+		c = { radius = jr + t * 2.4 + pad, a0 = PI - cSpan, a1 = PI + cSpan, drain = "center" }
+	end
+
+	return j, c
+end
+
+local function LayoutArc(arc, cfg, db, enabled)
+	local n = 0
+	if enabled and cfg and cfg.radius > 0 then
+		n = max(4, ceil(abs(cfg.a1 - cfg.a0) / (TAU / db.segments)))
+	end
+
+	if n > 0 then
+		local thick = max(2, db.thickness * 0.55)
+		local pad = db.trackPad
+		local ta = db.trackAlpha
+		local spacing = TAU * cfg.radius / db.segments
+		local segLen = max(2, spacing * db.segmentFill)
+		local trackLen = spacing + 1.5
+
+		for i = 1, n do
+			local u = (i - 0.5) / n
+			local a = cfg.a0 + (cfg.a1 - cfg.a0) * u
+			local x, y = cfg.radius * sin(a), cfg.radius * cos(a)
+
+			local bg = arc.track[i]
+			if not bg then
+				bg = Backing(frame, 1)
+				arc.track[i] = bg
+			end
+			bg:SetSize(trackLen, thick + pad * 2)
+			bg:ClearAllPoints()
+			bg:SetPoint("CENTER", frame, "CENTER", x, y)
+			if canRotate then bg:SetRotation(-a) end
+			bg:SetVertexColor(0, 0, 0, ta)
+			bg:Hide()
+
+			local tex = arc.segs[i]
+			if not tex then
+				tex = frame:CreateTexture(nil, "ARTWORK")
+				tex:SetTexture(TEXTURE)
+				arc.segs[i] = tex
+			end
+			tex.u = u
+			tex:SetSize(segLen, thick)
+			tex:ClearAllPoints()
+			tex:SetPoint("CENTER", frame, "CENTER", x, y)
+			if canRotate then tex:SetRotation(-a) end
+			tex.cr = nil
+			tex:Hide()
+		end
+		arc.drain = cfg.drain
+	end
+
+	for i = n + 1, #arc.segs do
+		arc.segs[i]:Hide()
+		if arc.track[i] then arc.track[i]:Hide() end
+	end
+	arc.count = n
+end
+
+local function SetArc(arc, f, color, ta)
+	if not f or arc.count == 0 then
+		for i = 1, arc.count do
+			arc.segs[i]:Hide()
+			arc.track[i]:Hide()
+		end
+		return
+	end
+	for i = 1, arc.count do
+		local tex = arc.segs[i]
+		local lit
+		if arc.drain == "center" then
+			lit = abs(2 * tex.u - 1) <= f
+		else
+			lit = tex.u <= f
+		end
+		if lit then
+			Paint(tex, color[1], color[2], color[3], 0.95)
+			tex:Show()
+			if ta > 0 then arc.track[i]:Show() else arc.track[i]:Hide() end
+		else
+			tex:Hide()
+			arc.track[i]:Hide()
+		end
+	end
 end
 
 function Ring:Create()
@@ -132,8 +245,9 @@ function Ring:Rebuild()
 	-- the lit segments on top of it are beads with gaps between them.
 	local trackLen = (TAU * r / n) + 1.5
 
-	local span = (r + t * 4.2 + pad * 2) * 2
-	frame:SetSize(span, span)
+	local jcfg, ccfg = ArcLayouts(db)
+	local outer = max(r + t * 2, jcfg.radius, ccfg.radius) + t + pad * 2
+	frame:SetSize(outer * 2, outer * 2)
 	self:Reposition()
 
 	for i = 1, n do
@@ -170,51 +284,8 @@ function Ring:Rebuild()
 		if track[i] then track[i]:Hide() end
 	end
 
-	-- Judgement rides an outer arc centred on the bottom of the ring, well away
-	-- from the twist window and the impact tick.
-	local jr = r + t * 3.2 + pad
-	local spanRad = rad(db.judgementSpan)
-	local jn = db.showJudgement and max(6, ceil(2 * spanRad / (TAU / n))) or 0
-	local jThick = max(2, t * 0.55)
-	local jLen = max(2, (TAU * jr / n) * db.segmentFill)
-	local jTrackLen = (TAU * jr / n) + 1.5
-
-	for i = 1, jn do
-		local off = ((i - 0.5) / jn) * 2 - 1
-		local a = PI + off * spanRad
-		local x, y = jr * sin(a), jr * cos(a)
-
-		local bg = judgeTrack[i]
-		if not bg then
-			bg = Backing(frame, 1)
-			judgeTrack[i] = bg
-		end
-		bg:SetSize(jTrackLen, jThick + pad * 2)
-		bg:ClearAllPoints()
-		bg:SetPoint("CENTER", frame, "CENTER", x, y)
-		if canRotate then bg:SetRotation(-a) end
-		bg:SetVertexColor(0, 0, 0, ta)
-		bg:Hide()
-
-		local tex = judgeSegs[i]
-		if not tex then
-			tex = frame:CreateTexture(nil, "ARTWORK")
-			tex:SetTexture(TEXTURE)
-			judgeSegs[i] = tex
-		end
-		tex.off = off
-		tex:SetSize(jLen, jThick)
-		tex:ClearAllPoints()
-		tex:SetPoint("CENTER", frame, "CENTER", x, y)
-		if canRotate then tex:SetRotation(-a) end
-		tex.cr = nil
-		tex:Hide()
-	end
-	for i = jn + 1, #judgeSegs do
-		judgeSegs[i]:Hide()
-		if judgeTrack[i] then judgeTrack[i]:Hide() end
-	end
-	judgeCount = jn
+	LayoutArc(arcs.judgement, jcfg, db, db.showJudgement)
+	LayoutArc(arcs.crusader, ccfg, db, db.showCrusader)
 
 	local tickW, tickH = max(2, t * 0.5), t * 3.2
 	tick:SetSize(tickW, tickH)
@@ -240,30 +311,6 @@ function Ring:Rebuild()
 	pipBg:SetSize(pipSize + pad * 2, pipSize + pad * 2)
 	pipBg:SetVertexColor(0, 0, 0, ta)
 	if ta > 0 then pipBg:Show() else pipBg:Hide() end
-end
-
-function Ring:UpdateJudgement()
-	local f = ns.state.judgeFrac
-	if not f or judgeCount == 0 then
-		for i = 1, judgeCount do
-			judgeSegs[i]:Hide()
-			judgeTrack[i]:Hide()
-		end
-		return
-	end
-	local c = ns.colors.judgement
-	local ta = ns.db.trackAlpha
-	for i = 1, judgeCount do
-		local tex = judgeSegs[i]
-		if abs(tex.off) <= f then
-			Paint(tex, c[1], c[2], c[3], 0.95)
-			tex:Show()
-			if ta > 0 then judgeTrack[i]:Show() else judgeTrack[i]:Hide() end
-		else
-			tex:Hide()
-			judgeTrack[i]:Hide()
-		end
-	end
 end
 
 function Ring:Hide(now, dt)
@@ -296,8 +343,10 @@ function Ring:Update(now, dt)
 	local n = db.segments
 	local seal = SealColor()
 	local trail = ns.TRAIL_ALPHA
+	local ta = db.trackAlpha
 
-	self:UpdateJudgement()
+	SetArc(arcs.judgement, st.judgeFrac, ns.colors.judgement, ta)
+	SetArc(arcs.crusader, st.crusaderFrac, ns.colors.crusader, ta)
 
 	-- Not swinging: hold a quiet outline in the seal colour with nothing moving.
 	if st.idle then
@@ -313,7 +362,6 @@ function Ring:Update(now, dt)
 		return
 	end
 
-	local ta = db.trackAlpha
 	tick:Show()
 	if ta > 0 then tickBg:Show() end
 
