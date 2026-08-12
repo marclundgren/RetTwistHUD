@@ -153,8 +153,8 @@ local function HandleSlash(input)
 	local num = tonumber(rest)
 
 	if cmd == "" or cmd == "options" or cmd == "config" then
-		if not (ns.Options and ns.Options:Open()) then
-			Print("the options panel is not available, falling back to commands.")
+		if not (ns.Options and ns.Options:Toggle()) then
+			Print("the options window is not available, falling back to commands.")
 			Usage()
 		end
 	elseif cmd == "help" then

@@ -152,41 +152,63 @@ local function Rebuild()
 	if ns.Ring then ns.Ring:Rebuild() end
 end
 
-local function Register(panel)
-	if Settings and Settings.RegisterCanvasLayoutCategory and Settings.RegisterAddOnCategory then
-		local category = Settings.RegisterCanvasLayoutCategory(panel, panel.name)
-		category.ID = panel.name
-		Settings.RegisterAddOnCategory(category)
-		Options.category = category
-		return true
+-- A window of our own rather than a page inside Blizzard's options frame. That
+-- API has changed shape three times across the Classic re-releases and fails
+-- silently when it does, which is exactly what it did here.
+local function CreateWindow()
+	local panel = CreateFrame("Frame", "RetTwistHUDOptionsPanel", UIParent,
+		BackdropTemplateMixin and "BackdropTemplate" or nil)
+	panel:SetSize(620, 520)
+	panel:SetPoint("CENTER")
+	panel:SetFrameStrata("DIALOG")
+	panel:SetClampedToScreen(true)
+	panel:SetMovable(true)
+	panel:EnableMouse(true)
+	panel:RegisterForDrag("LeftButton")
+	panel:SetScript("OnDragStart", panel.StartMoving)
+	panel:SetScript("OnDragStop", panel.StopMovingOrSizing)
+	panel:Hide()
+
+	if panel.SetBackdrop then
+		panel:SetBackdrop({
+			bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+			edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+			tile = true,
+			tileSize = 32,
+			edgeSize = 32,
+			insets = { left = 11, right = 12, top = 12, bottom = 11 },
+		})
 	end
-	if InterfaceOptions_AddCategory then
-		InterfaceOptions_AddCategory(panel)
-		return true
-	end
-	return false
+
+	local close = CreateFrame("Button", nil, panel, "UIPanelCloseButton")
+	close:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -4, -4)
+
+	-- Lets Escape close it, the same as any other dialog.
+	tinsert(UISpecialFrames, "RetTwistHUDOptionsPanel")
+
+	return panel
 end
 
 function Options:Build()
 	if self.panel then return true end
 
 	local db = ns.db
-	local panel = CreateFrame("Frame", "RetTwistHUDOptionsPanel", UIParent)
+	local panel = CreateWindow()
 	panel.name = "RetTwistHUD"
 	self.panel = panel
 
 	local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-	title:SetPoint("TOPLEFT", panel, "TOPLEFT", 16, -16)
+	title:SetPoint("TOPLEFT", panel, "TOPLEFT", 24, -20)
 	title:SetText("RetTwistHUD")
 
 	local sub = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
 	sub:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -6)
-	sub:SetText("Swing ring for retribution seal twisting. Every setting here is also a slash command, see /rth help.")
+	sub:SetText("Every setting here is also a slash command, see /rth help. Drag this window by its background.")
 
-	local top = -62
-	local c1 = Column(panel, 16, top)
-	local c2 = Column(panel, 214, top)
-	local c3 = Column(panel, 412, top)
+	local top = -72
+	local c1 = Column(panel, 24, top)
+	local c2 = Column(panel, 222, top)
+	local c3 = Column(panel, 420, top)
 
 	Header(c1, "Shape")
 	Slider(c1, "Radius", 30, 400, 1,
@@ -294,29 +316,23 @@ function Options:Build()
 		if ns.ResetDefaults then ns.ResetDefaults() end
 	end)
 
-	panel.refresh = RefreshAll
-	panel.okay = function() end
-	panel.cancel = function() end
 	panel:SetScript("OnShow", RefreshAll)
-
-	local registered = Register(panel)
 	RefreshAll()
-	return registered
+	return true
 end
 
 function Options:Open()
 	if not self.panel then return false end
+	RefreshAll()
+	self.panel:Show()
+	self.panel:Raise()
+	return true
+end
 
-	if Settings and Settings.OpenToCategory and self.category then
-		Settings.OpenToCategory(self.category:GetID())
+function Options:Toggle()
+	if self.panel and self.panel:IsShown() then
+		self.panel:Hide()
 		return true
 	end
-	if InterfaceOptionsFrame_OpenToCategory then
-		-- Called twice on purpose. On these clients the first call reliably
-		-- lands on the wrong page.
-		InterfaceOptionsFrame_OpenToCategory(self.panel)
-		InterfaceOptionsFrame_OpenToCategory(self.panel)
-		return true
-	end
-	return false
+	return self:Open()
 end

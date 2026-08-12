@@ -78,8 +78,8 @@ function MinimapButton:Build()
 			if ns.Ring then ns.Ring:ApplyLock() end
 			if ns.Options and ns.Options.Refresh then ns.Options.Refresh() end
 			ns.Print(ns.db.locked and "locked." or "unlocked, drag the ring to move it.")
-		elseif not (ns.Options and ns.Options:Open()) then
-			ns.Print("the options panel is not available, try /rth help.")
+		elseif not (ns.Options and ns.Options:Toggle()) then
+			ns.Print("the options window is not available, try /rth help.")
 		end
 	end)
 

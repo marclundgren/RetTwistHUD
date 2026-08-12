@@ -72,13 +72,19 @@ differ before colour resolves.
 
 ## Options panel
 
-Three ways in: left click the minimap button, type `/rth`, or find RetTwistHUD
-in the interface addon options. Every setting in the panel is also a slash
-command and the two stay in sync, so you can use whichever suits.
+Left click the minimap button or type `/rth`; either toggles it. Escape closes
+it and you can drag it by its background. Every setting in it is also a slash
+command and the two stay in sync, so use whichever suits.
 
-The panel is built inside a `pcall`. If a Blizzard template it depends on is
-missing or has changed shape on your client, the panel fails on its own and
-prints a message, and the ring and every slash command keep working.
+It is a window of its own rather than a page inside Blizzard's interface options
+frame. That API has changed shape three times across the Classic re-releases and
+fails silently when it does, which is exactly what happened the first time this
+was wired up: registering the panel appeared to succeed and opening it did
+nothing at all. Owning the window removes the entire class of problem.
+
+The panel is still built inside a `pcall`. If a Blizzard widget template it
+depends on is missing or has changed shape on your client, the panel fails on
+its own and prints a message, and the ring and every slash command keep working.
 
 ## Minimap button
 
