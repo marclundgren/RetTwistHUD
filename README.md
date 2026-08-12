@@ -1,0 +1,154 @@
+# RetTwistHUD
+
+A swing timer for TBC retribution paladins that lives around your character
+instead of at the bottom of the screen, so you can twist seals without staring
+at a bar below your feet.
+
+Interface 20506 (TBC Anniversary).
+
+## What it draws
+
+One thin ring centred on your character. Nothing is drawn inside it, so your
+model and the ground around you stay clear.
+
+- A pip laps the ring once per weapon swing. It reaches the top exactly when
+  the swing lands.
+- The ring colour is your active seal. Gold means the carrier seal is up and a
+  twist is pending. Crimson means the finisher is already up and this swing has
+  nothing to twist.
+- A green wedge just before the top is the twist window. It only appears when
+  the twist is actually available.
+- A dark segment ahead of the pip is your global cooldown. If it runs into the
+  window, the window greys out and you know a swing early not to bother.
+- A blue post crossing the ring is the last moment you can start a global
+  cooldown spell and still make the twist. It dims once the pip is past it, so
+  bright means go ahead and dim means hold.
+- A violet arc on an outer radius at the bottom is the Judgement cooldown. It
+  shrinks toward the middle as the cooldown runs and vanishes when it is ready,
+  so an empty bottom means Judgement is up.
+
+The window and the post are both drawn shifted back by your latency, because the
+press has to leave your client one round trip before the server checks the seal.
+
+## Visibility
+
+`/rth show MODE` picks when the ring exists at all.
+
+| Mode | Shows |
+| --- | --- |
+| `always` | Permanently, even standing in a city. |
+| `combat` | Only in combat. |
+| `seal` | Only while Seal of Command or Seal of Blood is up. |
+| `either` | In combat or with a seal up. The default. |
+| `both` | In combat and with a seal up. |
+
+`seal` counts only the two seals you twist between. Seal of the Crusader and the
+rest do not keep the ring on screen, since there is nothing to twist with them.
+
+When the ring is visible but you are not actually swinging at anything, it holds
+a quiet outline in your seal colour with no pip, no window and no ticks. That
+tells you which seal is up while you run in, without anything moving to pull
+your eye.
+
+## Commands
+
+`/rth` on its own lists everything.
+
+| Command | Effect |
+| --- | --- |
+| `/rth lock` | Toggle dragging. Unlocked also previews fake swings. |
+| `/rth test` | Fake swings so you can position it out of combat. |
+| `/rth radius N` | Distance from your character. Default 92. |
+| `/rth thickness N` | Ring line weight. Default 5. |
+| `/rth fill N` | 0.2 for a fine dotted ring, 1.0 for solid. Default 0.72. |
+| `/rth track N` | Dark groove behind the ring, 0 to 1. Default 0.7. |
+| `/rth trackpad N` | How far the groove sticks out, in px. Default 2. |
+| `/rth quiet N` | Dim when no twist is pending. Default 0.6. |
+| `/rth window N` | Twist window width in ms. Default 400. |
+| `/rth latency N` | Press offset in ms, or `auto` to read it from the client. |
+| `/rth safety N` | Window ms to keep free when placing the post. Default 150. |
+| `/rth gcd on\|off` | Paint the current global cooldown on the ring. |
+| `/rth lastsafe on\|off` | The last safe cast post. |
+| `/rth judgement on\|off` | The Judgement cooldown arc. |
+| `/rth show MODE` | When the ring is visible. See below. |
+| `/rth swap` | Swap which seal is the carrier and which is the finisher. |
+| `/rth reset` | Restore every default. |
+
+Defaults assume Seal of Command is the carrier and Seal of Blood is the
+finisher. Run `/rth swap` if you twist the other way round.
+
+## Tuning it
+
+Two settings actually matter, and both are personal.
+
+`window` is how long before impact a seal swap still counts. 400 ms is the
+usual figure. Lower it if twists are landing but the second seal is stealing the
+first one's proc.
+
+`latency` shifts the whole window earlier to cover your round trip. `auto`
+reads the client's world latency each swing, which is right most of the time.
+If your twists consistently land a fraction late, add 20 to 40 ms manually.
+
+`safety` decides how greedy the last safe cast post is. It is the amount of
+window you insist on still having free after the global cooldown clears. At 0
+the post sits at the absolute last possible instant and any jitter loses you the
+twist. At 150 ms you keep a comfortable margin. Raise it if you find yourself
+casting right on the post and missing.
+
+The post is placed using the global cooldown length the addon has actually
+observed, not a hardcoded 1.5 s, so it stays correct if that ever differs.
+
+## Contrast
+
+The ring has to stay readable over grass, lava, a lit floor and whatever a boss
+puts under you. Three things do that work.
+
+**The dark track.** Every element is drawn on a solid black groove slightly
+larger than itself, so its contrast comes from the groove rather than from
+whatever you happen to be standing in. `/rth track 0` removes it if you ever
+want the ring bare, `/rth trackpad N` changes how far it sticks out. This is the
+single setting that matters most on a busy floor.
+
+**Brightness carries the signal, hue only labels it.** Peripheral vision is
+close to colourblind, so the twist window is the brightest thing on the ring
+rather than the greenest. If you find yourself relying on colour to spot the
+window, something has gone wrong with the brightness ordering.
+
+**Quiet states give their contrast back.** When no twist is pending the whole
+ring dims to `quietAlpha`, because contrast spent on "nothing to do here" is
+contrast the window does not have. `/rth quiet 1` turns that off. Note that a
+global cooldown eating your window does *not* count as quiet, since holding your
+next spell is still a decision.
+
+## Colours
+
+Not exposed through slash commands, deliberately. Edit the `ns.colors` table at
+the top of `Config.lua`; values are `{r, g, b}` in the range 0 to 1.
+
+If you change them, keep the brightness ordering intact: the window and pip
+brightest, the seal colours mid, the blocked colour near black.
+
+## How the swing timer works
+
+TBC has no swing timer API, so it is reconstructed from the combat log. A swing
+landing is also the instant the next swing begins, so every `SWING_DAMAGE` or
+`SWING_MISSED` from you resynchronises the clock exactly. On top of that:
+
+- Haste gained or lost mid swing scales the remaining time by the same ratio as
+  the weapon speed rather than restarting the swing.
+- Parrying an incoming attack pulls your next swing forward by 40% of your
+  weapon speed, floored at 20% of it.
+- If no swing event arrives within 0.55 s of the expected one you have stopped
+  attacking, and the ring fades out.
+
+The one unavoidable gap is the very first swing of a pull, which has no prior
+event to sync against. It corrects itself on the first landed swing.
+
+## Files
+
+| File | Contents |
+| --- | --- |
+| `Config.lua` | Defaults, saved variables, palette, slash commands |
+| `Swing.lua` | Swing timer reconstruction |
+| `Ring.lua` | The ring, drawn as coloured segment textures |
+| `Core.lua` | Seal and cooldown state, window logic, event wiring |

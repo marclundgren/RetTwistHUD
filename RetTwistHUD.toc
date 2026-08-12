@@ -1,0 +1,11 @@
+## Interface: 20506, 20505
+## Title: RetTwistHUD
+## Notes: Minimal centred swing ring for retribution paladin seal twisting.
+## Version: 1.0.0
+## SavedVariables: RetTwistHUDDB
+## DefaultState: enabled
+
+Config.lua
+Swing.lua
+Ring.lua
+Core.lua
