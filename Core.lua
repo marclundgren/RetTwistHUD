@@ -35,6 +35,7 @@ ns.cooldowns = {
 }
 ns.noMana = false
 ns.testing = false
+ns.finisherAppliedAt = 0
 
 local BOOKTYPE = "spell"
 local TEST_SPEED = 3.6
@@ -149,6 +150,7 @@ end
 
 local function RefreshSeal()
 	local sp, st = ns.spells, ns.state
+	local previous = st.seal
 	st.seal, st.sealKey, st.sealIcon = nil, nil, nil
 	st.sealDuration, st.sealExpires = 0, 0
 
@@ -171,6 +173,32 @@ local function RefreshSeal()
 			end
 			break
 		end
+	end
+
+	-- When the finisher went up is half of the twist test. The other half is
+	-- when the swing lands, which we only learn later.
+	if st.seal == "finisher" then
+		if previous ~= "finisher" then ns.finisherAppliedAt = GetTime() end
+	else
+		ns.finisherAppliedAt = 0
+	end
+end
+
+-- What this can actually see is that the finisher seal went up inside the
+-- window before the swing resolved, which is to say your press was correctly
+-- timed. No combat log event reports that a twist paid out, so this deliberately
+-- claims no more than that.
+function ns.OnSwingLanded(now)
+	if not ns.db or not ns.db.showConfirm then return end
+	if ns.state.seal ~= "finisher" then return end
+
+	local applied = ns.finisherAppliedAt or 0
+	if applied <= 0 then return end
+
+	local delta = now - applied
+	-- The margin absorbs jitter between the aura and swing events arriving.
+	if delta >= 0 and delta <= (ns.db.windowMs / 1000) + 0.15 then
+		ns.Ring:Confirm(now)
 	end
 end
 

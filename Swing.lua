@@ -72,8 +72,12 @@ function Swing:OnCombatLogEvent()
 	if sub ~= "SWING_DAMAGE" and sub ~= "SWING_MISSED" then return end
 
 	if srcGUID == playerGUID then
+		local now = GetTime()
+		-- The instant the swing resolves is the only moment a twist can be
+		-- judged, so anything watching gets told before the clock restarts.
+		if ns.OnSwingLanded then ns.OnSwingLanded(now) end
 		-- Our swing just landed, so the next one starts right now.
-		self:Reset(GetTime())
+		self:Reset(now)
 	elseif dstGUID == playerGUID and sub == "SWING_MISSED" and arg12 == "PARRY" then
 		self:ApplyParryHaste()
 	end
