@@ -16,8 +16,6 @@ ns.swing = Swing
 -- stopped attacking (out of range, target dead, moved away) and the ring hides.
 local GRACE = 0.55
 
-local playerGUID
-
 function Swing:Reset(now, speed)
 	speed = speed or select(1, UnitAttackSpeed("player")) or 0
 	if not speed or speed <= 0 then
@@ -66,22 +64,8 @@ function Swing:ApplyParryHaste()
 	end
 end
 
-function Swing:OnCombatLogEvent()
-	local _, sub, _, srcGUID, _, _, _, dstGUID, _, _, _, arg12 = CombatLogGetCurrentEventInfo()
-
-	if sub ~= "SWING_DAMAGE" and sub ~= "SWING_MISSED" then return end
-
-	if srcGUID == playerGUID then
-		local now = GetTime()
-		-- The instant the swing resolves is the only moment a twist can be
-		-- judged, so anything watching gets told before the clock restarts.
-		if ns.OnSwingLanded then ns.OnSwingLanded(now) end
-		-- Our swing just landed, so the next one starts right now.
-		self:Reset(now)
-	elseif dstGUID == playerGUID and sub == "SWING_MISSED" and arg12 == "PARRY" then
-		self:ApplyParryHaste()
-	end
-end
+-- The combat log is parsed once in Core and dispatched here, so that swing
+-- timing and seal timing are read from the same ordered stream of events.
 
 -- Called every frame. Returns true while the ring has something to draw.
 function Swing:Poll(now)
@@ -100,8 +84,4 @@ function Swing:Progress(now)
 	if p < 0 then return 0 end
 	if p > 1 then return 1 end
 	return p
-end
-
-function Swing:Init()
-	playerGUID = UnitGUID("player")
 end

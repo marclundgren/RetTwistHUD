@@ -186,10 +186,18 @@ and fades. It fires once the swing has already landed, so it costs no attention
 during the window itself. `/rth confirm off` turns it off.
 
 Be clear about what it knows. No combat log event reports that a twist paid out.
-What this detects is that the finisher seal went up inside the window before the
-swing resolved, which is to say **your press was correctly timed**. It claims
-nothing about whether the server credited you both seals, and it deliberately
-does not pretend to.
+What this detects is that the finisher seal replaced the carrier inside the
+window before the swing resolved, which is to say **your press was correctly
+timed**. It claims nothing about whether the server credited you both seals, and
+it deliberately does not pretend to.
+
+Both halves of that test are read from the combat log rather than from aura
+state. The client batches `UNIT_AURA` but delivers the combat log immediately,
+so judging against aura state lost the race exactly when your timing was
+tightest, which is the worst possible way for it to fail.
+
+`/rth test` pulses on every fake swing, so you can confirm the animation itself
+is working without waiting on a real twist.
 
 That is still the useful signal, because timing is the part you control. It is
 also what makes `window` and `latency` tunable: without knowing which presses
