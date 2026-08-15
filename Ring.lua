@@ -405,7 +405,12 @@ function Ring:Update(now, dt)
 	-- Contrast is a budget. States with no decision in them give theirs back,
 	-- but the seal readout is exempt, since which seal is up is exactly what you
 	-- want to know when nothing else is happening.
-	local quiet = (st.idle or st.windowState == "none") and db.quietAlpha or 1
+	--
+	-- Holding either twist seal counts as having a decision, so this keys on
+	-- that rather than on the window being armed. With the finisher up the
+	-- window is dark but the post still matters, and dimming it would hide the
+	-- one thing worth looking at.
+	local quiet = (st.idle or not st.twisting) and db.quietAlpha or 1
 	frame:SetAlpha(shownAlpha * quiet)
 	sealHost:SetAlpha(shownAlpha)
 

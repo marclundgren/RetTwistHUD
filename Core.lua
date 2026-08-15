@@ -14,6 +14,7 @@ ns.state = {
 	sealFrac = nil, -- seal time remaining, 1 just cast, nil for no seal
 	displaySeal = nil, -- what the ring paints, which preview may override
 	displayIcon = nil,
+	twisting = false, -- either twist seal is up, so this swing has a decision
 	windowState = "none", -- "open", "blocked" or "none"
 	windowStartP = 0,
 	windowEndP = 0,
@@ -283,6 +284,11 @@ local function UpdateState(now)
 		st.sealFrac = st.sealFrac or 0.7
 	end
 
+	-- Either twist seal means there is a decision to make this swing. With the
+	-- carrier up it is whether to spend a global cooldown on something else,
+	-- with the finisher up it is whether you can still swap back in time.
+	st.twisting = st.displaySeal == "carrier" or st.displaySeal == "finisher"
+
 	local swinging
 	if preview then
 		if not sw.active or now >= sw.expires then sw:Reset(now, TEST_SPEED) end
@@ -342,8 +348,14 @@ local function UpdateState(now)
 
 	-- The last instant you can start a 1.5s spell and still have the global
 	-- cooldown clear with `safetyMs` of the twist window left to press in.
+	--
+	-- This is gated on holding either twist seal rather than on the window being
+	-- armed. The deadline is the same instant either way, because casting the
+	-- carrier costs exactly the same global cooldown as casting anything else
+	-- does. What changes is what passing it costs you: with the carrier up you
+	-- merely lose a filler ability, with the finisher up you lose the twist.
 	st.lastSafeP = nil
-	if db.showLastSafe and st.windowState == "open" then
+	if db.showLastSafe and st.twisting and ns.spells.finisherName then
 		local deadline = sw.expires - lat - (db.safetyMs / 1000)
 		local lsP = 1 - (sw.expires - (deadline - ns.gcdLength)) / dur
 		if lsP > 0 then
