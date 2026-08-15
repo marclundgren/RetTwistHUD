@@ -19,6 +19,7 @@ ns.colors = {
 	lastSafe = { 0.45, 0.72, 1.00 }, -- last point you can start a gcd spell
 	judgement = { 0.72, 0.64, 1.00 }, -- judgement cooldown arc
 	crusader = { 0.35, 0.88, 0.85 }, -- crusader strike cooldown arc
+	sealTime = { 0.88, 0.86, 0.80 }, -- ring around the seal icon, time remaining
 }
 
 -- Alpha applied to the part of the ring the swing has not reached yet.
@@ -47,6 +48,10 @@ local defaults = {
 	crusaderSpan = 45, -- deliberately shorter than judgement so the two
 	-- silhouettes differ before colour resolves
 	crusaderPlacement = "stacked", -- stacked | mirrored | split | nested
+	showSeal = true, -- icon of whichever seal is actually up
+	showSealDuration = true, -- thin ring around it counting the seal down
+	sealIconSize = 26,
+	sealAngle = 0, -- degrees clockwise from the top of the ring
 	-- always | combat | seal | either | both
 	showMode = "either",
 	minimap = { angle = 200, hide = false },
@@ -132,6 +137,10 @@ local function Usage()
 	Print("  |cffb4b2a9/rth judgement|r on|off arc for the judgement cooldown")
 	Print("  |cffb4b2a9/rth crusader|r on|off  arc for the crusader strike cooldown")
 	Print("  |cffb4b2a9/rth csplace|r MODE  stacked, mirrored, split, nested")
+	Print("  |cffb4b2a9/rth seal|r on|off   icon of the seal you have up")
+	Print("  |cffb4b2a9/rth sealduration|r on|off  countdown ring around that icon")
+	Print("  |cffb4b2a9/rth sealangle|r N   where it sits, degrees clockwise from top")
+	Print("  |cffb4b2a9/rth sealsize|r N    seal icon size, default 26")
 	Print("  |cffb4b2a9/rth show|r MODE     always, combat, seal, either, both")
 	Print("  |cffb4b2a9/rth minimap|r on|off show the minimap button")
 	Print("  |cffb4b2a9/rth swap|r          swap which seal is carrier and which is finisher")
@@ -261,6 +270,36 @@ local function HandleSlash(input)
 			db.showCrusader = b
 			ns.Ring:Rebuild()
 			Print("crusader strike arc " .. (b and "on." or "off."))
+		end
+	elseif cmd == "seal" then
+		local b = ToBool(rest:lower())
+		if b == nil then Print("seal takes on or off.") else
+			db.showSeal = b
+			ns.Ring:Rebuild()
+			Print("active seal icon " .. (b and "on." or "off."))
+		end
+	elseif cmd == "sealduration" then
+		local b = ToBool(rest:lower())
+		if b == nil then Print("sealduration takes on or off.") else
+			db.showSealDuration = b
+			ns.Ring:Rebuild()
+			Print("seal duration ring " .. (b and "on." or "off."))
+		end
+	elseif cmd == "sealangle" then
+		if num and num >= 0 and num <= 359 then
+			db.sealAngle = num
+			ns.Ring:Rebuild()
+			Print("seal icon at " .. num .. " degrees clockwise from the top.")
+		else
+			Print("sealangle takes a number between 0 and 359, 0 is straight up.")
+		end
+	elseif cmd == "sealsize" then
+		if num and num >= 12 and num <= 64 then
+			db.sealIconSize = num
+			ns.Ring:Rebuild()
+			Print("seal icon " .. num .. " px.")
+		else
+			Print("sealsize takes a number between 12 and 64.")
 		end
 	elseif cmd == "csplace" then
 		local mode = rest:lower()

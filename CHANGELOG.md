@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.1.0
+
+- Show an icon for whichever seal you have up, with a thin ring around it
+  counting down the seal's remaining duration. `/rth sealangle` puts it
+  anywhere around the ring; it sits above your head by default.
+- Track every paladin seal rather than only the two you twist between. Seal of
+  the Crusader now shows its own icon, and it counts as a seal for the
+  seal-aware visibility modes. Previously `/rth show seal` and `/rth show both`
+  would hide the ring entirely while Seal of the Crusader was up.
+- The seal readout is exempt from the quiet dim. Which seal is up is exactly
+  what you want to know when nothing else is happening, and it was previously
+  dimmest whenever no twist was pending.
+
 ## 1.0.0
 
 First release.

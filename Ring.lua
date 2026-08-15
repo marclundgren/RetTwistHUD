@@ -13,15 +13,17 @@ local sin, cos, max, min, abs, rad, ceil = math.sin, math.cos, math.max, math.mi
 -- segments simply stay axis aligned, which at this size still reads as a ring.
 local canRotate
 
-local frame, pip, pipBg, tick, tickBg, lastSafe, lastSafeBg, hint
+local frame, sealHost, pip, pipBg, tick, tickBg, lastSafe, lastSafeBg, hint
+local sealIcon, sealIconBg
 local segments = {}
 local track = {}
 local shownAlpha = 0
 
--- Cooldown arcs, keyed to match ns.cooldowns.
+-- Cooldown arcs, keyed to match ns.cooldowns, plus the seal countdown.
 local arcs = {
 	judgement = { segs = {}, track = {}, count = 0, drain = "center" },
 	crusader = { segs = {}, track = {}, count = 0, drain = "center" },
+	seal = { segs = {}, track = {}, count = 0, drain = "fromA0" },
 }
 
 local function Paint(tex, r, g, b, a)
@@ -74,46 +76,50 @@ local function ArcLayouts(db)
 end
 
 local function LayoutArc(arc, cfg, db, enabled)
+	local parent = (cfg and cfg.parent) or frame
 	local n = 0
 	if enabled and cfg and cfg.radius > 0 then
-		n = max(4, ceil(abs(cfg.a1 - cfg.a0) / (TAU / db.segments)))
+		n = cfg.count or max(4, ceil(abs(cfg.a1 - cfg.a0) / (TAU / db.segments)))
 	end
 
 	if n > 0 then
-		local thick = max(2, db.thickness * 0.55)
+		local thick = cfg.thickness or max(2, db.thickness * 0.55)
 		local pad = db.trackPad
 		local ta = db.trackAlpha
-		local spacing = TAU * cfg.radius / db.segments
+		local cx, cy = cfg.cx or 0, cfg.cy or 0
+		-- Derived from the arc itself rather than the ring, so an arc drawn
+		-- around the seal icon spaces its segments correctly too.
+		local spacing = cfg.radius * abs(cfg.a1 - cfg.a0) / n
 		local segLen = max(2, spacing * db.segmentFill)
 		local trackLen = spacing + 1.5
 
 		for i = 1, n do
 			local u = (i - 0.5) / n
 			local a = cfg.a0 + (cfg.a1 - cfg.a0) * u
-			local x, y = cfg.radius * sin(a), cfg.radius * cos(a)
+			local x, y = cx + cfg.radius * sin(a), cy + cfg.radius * cos(a)
 
 			local bg = arc.track[i]
 			if not bg then
-				bg = Backing(frame, 1)
+				bg = Backing(parent, 1)
 				arc.track[i] = bg
 			end
 			bg:SetSize(trackLen, thick + pad * 2)
 			bg:ClearAllPoints()
-			bg:SetPoint("CENTER", frame, "CENTER", x, y)
+			bg:SetPoint("CENTER", parent, "CENTER", x, y)
 			if canRotate then bg:SetRotation(-a) end
 			bg:SetVertexColor(0, 0, 0, ta)
 			bg:Hide()
 
 			local tex = arc.segs[i]
 			if not tex then
-				tex = frame:CreateTexture(nil, "ARTWORK")
+				tex = parent:CreateTexture(nil, "ARTWORK")
 				tex:SetTexture(TEXTURE)
 				arc.segs[i] = tex
 			end
 			tex.u = u
 			tex:SetSize(segLen, thick)
 			tex:ClearAllPoints()
-			tex:SetPoint("CENTER", frame, "CENTER", x, y)
+			tex:SetPoint("CENTER", parent, "CENTER", x, y)
 			if canRotate then tex:SetRotation(-a) end
 			tex.cr = nil
 			tex:Hide()
@@ -164,6 +170,14 @@ function Ring:Create()
 	frame:SetAlpha(0)
 	frame:Hide()
 
+	-- Which seal is up is never a "nothing to do here" state, so it must not be
+	-- dimmed along with the ring. Child alpha always multiplies the parent's, so
+	-- the seal readout lives on a sibling frame with its own alpha.
+	sealHost = CreateFrame("Frame", nil, UIParent)
+	sealHost:SetFrameStrata("MEDIUM")
+	sealHost:SetAlpha(0)
+	sealHost:Hide()
+
 	hint = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
 	hint:SetTexture(TEXTURE)
 	hint:SetVertexColor(0.94, 0.62, 0.15, 0.10)
@@ -183,6 +197,13 @@ function Ring:Create()
 	pipBg = Backing(frame, 2)
 	pip = frame:CreateTexture(nil, "OVERLAY")
 	pip:SetTexture(TEXTURE)
+
+	sealIconBg = Backing(sealHost, 2)
+	sealIcon = sealHost:CreateTexture(nil, "ARTWORK")
+	-- Trims the stock icon border so it reads as art rather than a button.
+	sealIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	sealIcon:Hide()
+	sealIconBg:Hide()
 
 	local probe = frame:CreateTexture(nil, "ARTWORK")
 	probe:SetTexture(TEXTURE)
@@ -210,6 +231,8 @@ end
 function Ring:Reposition()
 	frame:ClearAllPoints()
 	frame:SetPoint("CENTER", UIParent, "CENTER", ns.db.offsetX, ns.db.offsetY)
+	sealHost:ClearAllPoints()
+	sealHost:SetAllPoints(frame)
 end
 
 function Ring:ApplyLock()
@@ -246,7 +269,13 @@ function Ring:Rebuild()
 	local trackLen = (TAU * r / n) + 1.5
 
 	local jcfg, ccfg = ArcLayouts(db)
-	local outer = max(r + t * 2, jcfg.radius, ccfg.radius) + t + pad * 2
+
+	local iconSize = db.sealIconSize
+	local sealR = r + t + pad + iconSize * 0.62 + 4
+	local sa = rad(db.sealAngle)
+	local sx, sy = sealR * sin(sa), sealR * cos(sa)
+
+	local outer = max(r + t * 2, jcfg.radius, ccfg.radius, sealR + iconSize * 0.8) + t + pad * 2
 	frame:SetSize(outer * 2, outer * 2)
 	self:Reposition()
 
@@ -287,6 +316,26 @@ function Ring:Rebuild()
 	LayoutArc(arcs.judgement, jcfg, db, db.showJudgement)
 	LayoutArc(arcs.crusader, ccfg, db, db.showCrusader)
 
+	sealIcon:SetSize(iconSize, iconSize)
+	sealIcon:ClearAllPoints()
+	sealIcon:SetPoint("CENTER", sealHost, "CENTER", sx, sy)
+	sealIconBg:SetSize(iconSize + pad * 2 + 2, iconSize + pad * 2 + 2)
+	sealIconBg:ClearAllPoints()
+	sealIconBg:SetPoint("CENTER", sealIcon, "CENTER")
+	sealIconBg:SetVertexColor(0, 0, 0, max(ta, 0.5))
+
+	LayoutArc(arcs.seal, {
+		parent = sealHost,
+		cx = sx,
+		cy = sy,
+		radius = iconSize * 0.78,
+		a0 = 0,
+		a1 = TAU,
+		drain = "fromA0",
+		count = 30,
+		thickness = max(2, t * 0.45),
+	}, db, db.showSeal and db.showSealDuration)
+
 	local tickW, tickH = max(2, t * 0.5), t * 3.2
 	tick:SetSize(tickW, tickH)
 	tick:ClearAllPoints()
@@ -317,7 +366,23 @@ function Ring:Hide(now, dt)
 	if shownAlpha <= 0 then return end
 	shownAlpha = max(0, shownAlpha - dt * 5)
 	frame:SetAlpha(shownAlpha)
-	if shownAlpha <= 0 then frame:Hide() end
+	sealHost:SetAlpha(shownAlpha)
+	if shownAlpha <= 0 then
+		frame:Hide()
+		sealHost:Hide()
+	end
+end
+
+local function UpdateSeal(db, st, ta)
+	if db.showSeal and st.displayIcon then
+		sealIcon:SetTexture(st.displayIcon)
+		sealIcon:Show()
+		if ta > 0 then sealIconBg:Show() else sealIconBg:Hide() end
+	else
+		sealIcon:Hide()
+		sealIconBg:Hide()
+	end
+	SetArc(arcs.seal, db.showSeal and st.sealFrac or nil, ns.colors.sealTime, ta)
 end
 
 function Ring:Update(now, dt)
@@ -332,13 +397,17 @@ function Ring:Update(now, dt)
 	end
 
 	if not frame:IsShown() then frame:Show() end
+	if not sealHost:IsShown() then sealHost:Show() end
 	if shownAlpha < 1 then
 		shownAlpha = min(1, shownAlpha + dt * 8)
 	end
 
-	-- Contrast is a budget. States with no decision in them give theirs back.
+	-- Contrast is a budget. States with no decision in them give theirs back,
+	-- but the seal readout is exempt, since which seal is up is exactly what you
+	-- want to know when nothing else is happening.
 	local quiet = (st.idle or st.windowState == "none") and db.quietAlpha or 1
 	frame:SetAlpha(shownAlpha * quiet)
+	sealHost:SetAlpha(shownAlpha)
 
 	local n = db.segments
 	local seal = SealColor()
@@ -347,6 +416,7 @@ function Ring:Update(now, dt)
 
 	SetArc(arcs.judgement, st.judgeFrac, ns.colors.judgement, ta)
 	SetArc(arcs.crusader, st.crusaderFrac, ns.colors.crusader, ta)
+	UpdateSeal(db, st, ta)
 
 	-- Not swinging: hold a quiet outline in the seal colour with nothing moving.
 	if st.idle then
