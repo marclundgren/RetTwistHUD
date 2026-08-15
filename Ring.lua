@@ -13,7 +13,7 @@ local sin, cos, max, min, abs, rad, ceil = math.sin, math.cos, math.max, math.mi
 -- segments simply stay axis aligned, which at this size still reads as a ring.
 local canRotate
 
-local frame, sealHost, pip, pipBg, tick, tickBg, lastSafe, lastSafeBg, hint
+local frame, brightHost, pip, pipBg, tick, tickBg, lastSafe, lastSafeBg, hint
 local sealIcon, sealIconBg
 local segments = {}
 local track = {}
@@ -170,13 +170,15 @@ function Ring:Create()
 	frame:SetAlpha(0)
 	frame:Hide()
 
-	-- Which seal is up is never a "nothing to do here" state, so it must not be
-	-- dimmed along with the ring. Child alpha always multiplies the parent's, so
-	-- the seal readout lives on a sibling frame with its own alpha.
-	sealHost = CreateFrame("Frame", nil, UIParent)
-	sealHost:SetFrameStrata("MEDIUM")
-	sealHost:SetAlpha(0)
-	sealHost:Hide()
+	-- Anything that stays relevant when the ring goes quiet lives here instead of
+	-- on the ring, because child alpha always multiplies the parent's and there
+	-- is no way for a child to be brighter than its parent. Currently the seal
+	-- readout and the last safe cast post.
+	brightHost = CreateFrame("Frame", nil, UIParent)
+	brightHost:SetFrameStrata("MEDIUM")
+	brightHost:SetFrameLevel(frame:GetFrameLevel() + 2)
+	brightHost:SetAlpha(0)
+	brightHost:Hide()
 
 	hint = frame:CreateTexture(nil, "BACKGROUND", nil, -8)
 	hint:SetTexture(TEXTURE)
@@ -188,9 +190,9 @@ function Ring:Create()
 	tick = frame:CreateTexture(nil, "OVERLAY")
 	tick:SetTexture(TEXTURE)
 
-	lastSafeBg = Backing(frame, 2)
+	lastSafeBg = Backing(brightHost, 2)
 	lastSafeBg:Hide()
-	lastSafe = frame:CreateTexture(nil, "OVERLAY")
+	lastSafe = brightHost:CreateTexture(nil, "OVERLAY")
 	lastSafe:SetTexture(TEXTURE)
 	lastSafe:Hide()
 
@@ -198,8 +200,8 @@ function Ring:Create()
 	pip = frame:CreateTexture(nil, "OVERLAY")
 	pip:SetTexture(TEXTURE)
 
-	sealIconBg = Backing(sealHost, 2)
-	sealIcon = sealHost:CreateTexture(nil, "ARTWORK")
+	sealIconBg = Backing(brightHost, 2)
+	sealIcon = brightHost:CreateTexture(nil, "ARTWORK")
 	-- Trims the stock icon border so it reads as art rather than a button.
 	sealIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 	sealIcon:Hide()
@@ -231,8 +233,8 @@ end
 function Ring:Reposition()
 	frame:ClearAllPoints()
 	frame:SetPoint("CENTER", UIParent, "CENTER", ns.db.offsetX, ns.db.offsetY)
-	sealHost:ClearAllPoints()
-	sealHost:SetAllPoints(frame)
+	brightHost:ClearAllPoints()
+	brightHost:SetAllPoints(frame)
 end
 
 function Ring:ApplyLock()
@@ -318,14 +320,14 @@ function Ring:Rebuild()
 
 	sealIcon:SetSize(iconSize, iconSize)
 	sealIcon:ClearAllPoints()
-	sealIcon:SetPoint("CENTER", sealHost, "CENTER", sx, sy)
+	sealIcon:SetPoint("CENTER", brightHost, "CENTER", sx, sy)
 	sealIconBg:SetSize(iconSize + pad * 2 + 2, iconSize + pad * 2 + 2)
 	sealIconBg:ClearAllPoints()
 	sealIconBg:SetPoint("CENTER", sealIcon, "CENTER")
 	sealIconBg:SetVertexColor(0, 0, 0, max(ta, 0.5))
 
 	LayoutArc(arcs.seal, {
-		parent = sealHost,
+		parent = brightHost,
 		cx = sx,
 		cy = sy,
 		radius = iconSize * 0.78,
@@ -366,10 +368,10 @@ function Ring:Hide(now, dt)
 	if shownAlpha <= 0 then return end
 	shownAlpha = max(0, shownAlpha - dt * 5)
 	frame:SetAlpha(shownAlpha)
-	sealHost:SetAlpha(shownAlpha)
+	brightHost:SetAlpha(shownAlpha)
 	if shownAlpha <= 0 then
 		frame:Hide()
-		sealHost:Hide()
+		brightHost:Hide()
 	end
 end
 
@@ -397,7 +399,7 @@ function Ring:Update(now, dt)
 	end
 
 	if not frame:IsShown() then frame:Show() end
-	if not sealHost:IsShown() then sealHost:Show() end
+	if not brightHost:IsShown() then brightHost:Show() end
 	if shownAlpha < 1 then
 		shownAlpha = min(1, shownAlpha + dt * 8)
 	end
@@ -412,7 +414,7 @@ function Ring:Update(now, dt)
 	-- one thing worth looking at.
 	local quiet = (st.idle or not st.twisting) and db.quietAlpha or 1
 	frame:SetAlpha(shownAlpha * quiet)
-	sealHost:SetAlpha(shownAlpha)
+	brightHost:SetAlpha(shownAlpha)
 
 	local n = db.segments
 	local seal = SealColor()
@@ -476,7 +478,7 @@ function Ring:Update(now, dt)
 		local a = st.lastSafeP * TAU
 		local x, y = db.radius * sin(a), db.radius * cos(a)
 		lastSafe:ClearAllPoints()
-		lastSafe:SetPoint("CENTER", frame, "CENTER", x, y)
+		lastSafe:SetPoint("CENTER", brightHost, "CENTER", x, y)
 		lastSafeBg:ClearAllPoints()
 		lastSafeBg:SetPoint("CENTER", lastSafe, "CENTER")
 		if canRotate then

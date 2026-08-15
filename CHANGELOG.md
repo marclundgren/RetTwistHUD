@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.1
+
+- The last safe cast post is now drawn on every live swing rather than only
+  while a twist seal is up. The deadline belongs to the swing and the global
+  cooldown, not to the seal, so it was the same instant all along and only the
+  gate was wrong.
+- The post is no longer dimmed by the quiet setting, joining the seal readout
+  on the always-bright layer. It stays relevant in exactly the states the ring
+  goes quiet in.
+
 ## 1.1.0
 
 - The last safe cast post now shows while either twist seal is up, not only

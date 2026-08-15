@@ -21,11 +21,14 @@ model and the ground around you stay clear.
 - A dark segment ahead of the pip is your global cooldown. If it runs into the
   window, the window greys out and you know a swing early not to bother.
 - A blue post crossing the ring is the last moment you can start a global
-  cooldown spell and still make the twist. It dims once the pip is past it, so
-  bright means go ahead and dim means hold. It shows whenever you hold either
-  twist seal, and what passing it costs you depends on which: with Seal of
-  Command up you only lose a filler ability, with Seal of Blood up you lose the
-  chance to swap back and the twist goes with it.
+  cooldown spell and still have it clear before the twist window. It dims once
+  the pip is past it, so bright means go ahead and dim means hold.
+
+The post is a property of the swing and the global cooldown, not of your seal,
+so it is drawn on every live swing whatever you are holding. Only the cost of
+passing it changes: with Seal of Command up you lose a filler ability, with Seal
+of Blood up you lose the chance to swap back and the twist goes with it, and
+with any other seal it is the point your setup has to be finished by.
 - A violet arc on an outer radius at the bottom is the Judgement cooldown. It
   shrinks toward the middle as the cooldown runs and vanishes when it is ready,
   so an empty bottom means Judgement is up.
@@ -196,7 +199,9 @@ a seal you cannot twist from. Holding either twist seal is never quiet, even
 when the window is dark, because there is always a call to make about your next
 global cooldown. `/rth quiet 1` turns the dimming off entirely.
 
-The seal icon and its countdown ring are never dimmed at all.
+The seal icon, its countdown ring, and the last safe cast post are never dimmed
+at all, since all three stay relevant in exactly the states the ring goes quiet
+in.
 
 ## Colours
 

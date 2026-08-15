@@ -349,13 +349,13 @@ local function UpdateState(now)
 	-- The last instant you can start a 1.5s spell and still have the global
 	-- cooldown clear with `safetyMs` of the twist window left to press in.
 	--
-	-- This is gated on holding either twist seal rather than on the window being
-	-- armed. The deadline is the same instant either way, because casting the
-	-- carrier costs exactly the same global cooldown as casting anything else
-	-- does. What changes is what passing it costs you: with the carrier up you
-	-- merely lose a filler ability, with the finisher up you lose the twist.
+	-- Not gated on which seal is up. The deadline is a property of the swing and
+	-- the global cooldown, not of the seal, so it is the same instant whatever
+	-- you are holding. Only the cost of passing it changes: a filler ability
+	-- with the carrier up, the whole twist with the finisher up, and with any
+	-- other seal it is where your setup has to be finished by.
 	st.lastSafeP = nil
-	if db.showLastSafe and st.twisting and ns.spells.finisherName then
+	if db.showLastSafe then
 		local deadline = sw.expires - lat - (db.safetyMs / 1000)
 		local lsP = 1 - (sw.expires - (deadline - ns.gcdLength)) / dur
 		if lsP > 0 then
