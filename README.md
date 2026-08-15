@@ -22,7 +22,10 @@ model and the ground around you stay clear.
   window, the window greys out and you know a swing early not to bother.
 - A blue post crossing the ring is the last moment you can start a global
   cooldown spell and still make the twist. It dims once the pip is past it, so
-  bright means go ahead and dim means hold.
+  bright means go ahead and dim means hold. It shows whenever you hold either
+  twist seal, and what passing it costs you depends on which: with Seal of
+  Command up you only lose a filler ability, with Seal of Blood up you lose the
+  chance to swap back and the twist goes with it.
 - A violet arc on an outer radius at the bottom is the Judgement cooldown. It
   shrinks toward the middle as the cooldown runs and vanishes when it is ready,
   so an empty bottom means Judgement is up.
@@ -187,11 +190,13 @@ close to colourblind, so the twist window is the brightest thing on the ring
 rather than the greenest. If you find yourself relying on colour to spot the
 window, something has gone wrong with the brightness ordering.
 
-**Quiet states give their contrast back.** When no twist is pending the whole
-ring dims to `quietAlpha`, because contrast spent on "nothing to do here" is
-contrast the window does not have. `/rth quiet 1` turns that off. Note that a
-global cooldown eating your window does *not* count as quiet, since holding your
-next spell is still a decision.
+**Quiet states give their contrast back.** The ring dims to `quietAlpha` when
+there is genuinely nothing to decide: you are not swinging, or you are holding
+a seal you cannot twist from. Holding either twist seal is never quiet, even
+when the window is dark, because there is always a call to make about your next
+global cooldown. `/rth quiet 1` turns the dimming off entirely.
+
+The seal icon and its countdown ring are never dimmed at all.
 
 ## Colours
 

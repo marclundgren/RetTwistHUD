@@ -2,6 +2,15 @@
 
 ## 1.1.0
 
+- The last safe cast post now shows while either twist seal is up, not only
+  Seal of Command. With Seal of Blood up it tells you whether you can still
+  swap back to Seal of Command in time for this swing's twist, which is the
+  same instant and the same arithmetic, but a far more expensive deadline to
+  miss.
+- The ring no longer dims while you hold either twist seal. Dimming keyed on
+  the twist window being armed, which meant the post went quiet in exactly the
+  state where it was the only thing worth looking at.
+
 - Show an icon for whichever seal you have up, with a thin ring around it
   counting down the seal's remaining duration. `/rth sealangle` puts it
   anywhere around the ring; it sits above your head by default.
