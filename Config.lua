@@ -39,6 +39,10 @@ local defaults = {
 	windowMs = 400,
 	latencyMs = -1, -- -1 means "read it from the client each swing"
 	safetyMs = 150, -- window you insist on keeping free when placing lastsafe
+	-- The window is already white at full alpha, so it cannot be made brighter.
+	-- Extra salience has to come from size instead.
+	windowBoost = 1.8, -- how much thicker the window is than the rest of the ring
+	showConfirm = true, -- pulse after a swing you twisted in time for
 	showGCD = true,
 	showPip = true,
 	showLastSafe = true,
@@ -132,6 +136,8 @@ local function Usage()
 	Print("  |cffb4b2a9/rth window|r N      twist window in ms, default 400")
 	Print("  |cffb4b2a9/rth latency|r N     press offset in ms, or 'auto'")
 	Print("  |cffb4b2a9/rth safety|r N      window ms to protect from a gcd spell, default 150")
+	Print("  |cffb4b2a9/rth boost|r N       twist window thickness, 1 to 3, default 1.8")
+	Print("  |cffb4b2a9/rth confirm|r on|off  pulse after a swing you twisted in time for")
 	Print("  |cffb4b2a9/rth gcd|r on|off    paint the current global cooldown on the ring")
 	Print("  |cffb4b2a9/rth lastsafe|r on|off  mark the last gcd spell you can start")
 	Print("  |cffb4b2a9/rth judgement|r on|off arc for the judgement cooldown")
@@ -244,6 +250,19 @@ local function HandleSlash(input)
 			Print("protecting the last " .. num .. " ms of the window from a gcd spell.")
 		else
 			Print("safety takes a number between 0 and 1000 ms.")
+		end
+	elseif cmd == "boost" then
+		if num and num >= 1 and num <= 3 then
+			db.windowBoost = num
+			Print("twist window drawn " .. num .. " times the ring thickness.")
+		else
+			Print("boost takes a number between 1 and 3.")
+		end
+	elseif cmd == "confirm" then
+		local b = ToBool(rest:lower())
+		if b == nil then Print("confirm takes on or off.") else
+			db.showConfirm = b
+			Print("twist confirmation pulse " .. (b and "on." or "off."))
 		end
 	elseif cmd == "gcd" then
 		local b = ToBool(rest:lower())

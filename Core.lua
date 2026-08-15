@@ -35,6 +35,38 @@ ns.cooldowns = {
 }
 ns.noMana = false
 ns.testing = false
+ns.finisherAppliedAt = 0
+ns.carrierAppliedAt = 0
+local playerGUID
+
+-- Parsed once per event and dispatched, both because the combat log is hot in
+-- raids and because the swing and the seal have to be read from one stream.
+local function OnCombatLog()
+	local _, sub, _, srcGUID, _, _, _, dstGUID, _, _, _, p12, p13 = CombatLogGetCurrentEventInfo()
+	local now = GetTime()
+
+	if sub == "SWING_DAMAGE" or sub == "SWING_MISSED" then
+		if srcGUID == playerGUID then
+			-- Judged before the clock restarts, since the instant the swing
+			-- resolves is the only moment a twist can be assessed.
+			ns.JudgeTwist(now)
+			ns.swing:Reset(now)
+		elseif dstGUID == playerGUID and sub == "SWING_MISSED" and p12 == "PARRY" then
+			ns.swing:ApplyParryHaste()
+		end
+		return
+	end
+
+	if dstGUID ~= playerGUID then return end
+	if sub ~= "SPELL_AURA_APPLIED" and sub ~= "SPELL_AURA_REFRESH" then return end
+
+	-- p12 is the spell id and p13 the name on every SPELL_ prefixed event.
+	if p13 == ns.spells.finisherName then
+		ns.finisherAppliedAt = now
+	elseif p13 == ns.spells.carrierName then
+		ns.carrierAppliedAt = now
+	end
+end
 
 local BOOKTYPE = "spell"
 local TEST_SPEED = 3.6
@@ -172,6 +204,32 @@ local function RefreshSeal()
 			break
 		end
 	end
+
+end
+
+-- What this can actually see is that the finisher seal went up inside the
+-- window before the swing resolved, having replaced the carrier, which is to
+-- say your press was correctly timed. No combat log event reports that a twist
+-- paid out, so this deliberately claims no more than that.
+--
+-- Both halves are read from the combat log rather than from UNIT_AURA. The
+-- client batches UNIT_AURA but delivers the combat log immediately, so judging
+-- a twist against aura state lost the race precisely when the timing was
+-- tightest, which is the worst possible way for it to fail.
+function ns.JudgeTwist(now)
+	if not ns.db or not ns.db.showConfirm then return end
+
+	local applied = ns.finisherAppliedAt
+	if applied <= 0 then return end
+
+	-- A swap, not a seal cast out of nothing.
+	if ns.carrierAppliedAt <= 0 or ns.carrierAppliedAt >= applied then return end
+
+	local delta = now - applied
+	-- The margin absorbs the gap between the two events being stamped.
+	if delta >= 0 and delta <= (ns.db.windowMs / 1000) + 0.15 then
+		ns.Ring:Confirm(now)
+	end
 end
 
 local function RefreshCooldown()
@@ -291,7 +349,12 @@ local function UpdateState(now)
 
 	local swinging
 	if preview then
-		if not sw.active or now >= sw.expires then sw:Reset(now, TEST_SPEED) end
+		if not sw.active or now >= sw.expires then
+			sw:Reset(now, TEST_SPEED)
+			-- Pulse on every fake swing, so the confirmation can be checked
+			-- without waiting on a real twist to land.
+			ns.Ring:Confirm(now)
+		end
 		swinging = true
 		st.visible = true
 	else
@@ -391,7 +454,7 @@ events:SetScript("OnEvent", function(self, event, ...)
 			return
 		end
 
-		ns.swing:Init()
+		playerGUID = UnitGUID("player")
 		ns.ResolveSpells()
 		ns.Ring:Create()
 
@@ -429,7 +492,7 @@ events:SetScript("OnEvent", function(self, event, ...)
 	end
 
 	if event == "COMBAT_LOG_EVENT_UNFILTERED" then
-		ns.swing:OnCombatLogEvent()
+		OnCombatLog()
 	elseif event == "UNIT_ATTACK_SPEED" or event == "PLAYER_EQUIPMENT_CHANGED" then
 		ns.swing:OnAttackSpeedChanged()
 	elseif event == "UNIT_AURA" then

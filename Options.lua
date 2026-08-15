@@ -276,6 +276,12 @@ function Options:Build()
 	Check(c2, "Last safe cast post",
 		function() return db.showLastSafe end,
 		function(v) db.showLastSafe = v end)
+	Check(c2, "Twist confirmation pulse",
+		function() return db.showConfirm end,
+		function(v) db.showConfirm = v end)
+	Slider(c2, "Twist window thickness", 1, 3, 0.1,
+		function() return db.windowBoost end,
+		function(v) db.windowBoost = v end, 1)
 
 	Gap(c2, 14)
 	Header(c2, "Visibility")

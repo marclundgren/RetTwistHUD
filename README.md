@@ -139,6 +139,8 @@ from a spell the addon already looks up, so the art path cannot go stale.
 | `/rth window N` | Twist window width in ms. Default 400. |
 | `/rth latency N` | Press offset in ms, or `auto` to read it from the client. |
 | `/rth safety N` | Window ms to keep free when placing the post. Default 150. |
+| `/rth boost N` | Twist window thickness, 1 to 3. Default 1.8. |
+| `/rth confirm on\|off` | The twist confirmation pulse. |
 | `/rth gcd on\|off` | Paint the current global cooldown on the ring. |
 | `/rth lastsafe on\|off` | The last safe cast post. |
 | `/rth judgement on\|off` | The Judgement cooldown arc. |
@@ -177,6 +179,30 @@ casting right on the post and missing.
 The post is placed using the global cooldown length the addon has actually
 observed, not a hardcoded 1.5 s, so it stays correct if that ever differs.
 
+## Twist confirmation
+
+After a swing you twisted in time for, a ring pulses outward from the swing ring
+and fades. It fires once the swing has already landed, so it costs no attention
+during the window itself. `/rth confirm off` turns it off.
+
+Be clear about what it knows. No combat log event reports that a twist paid out.
+What this detects is that the finisher seal replaced the carrier inside the
+window before the swing resolved, which is to say **your press was correctly
+timed**. It claims nothing about whether the server credited you both seals, and
+it deliberately does not pretend to.
+
+Both halves of that test are read from the combat log rather than from aura
+state. The client batches `UNIT_AURA` but delivers the combat log immediately,
+so judging against aura state lost the race exactly when your timing was
+tightest, which is the worst possible way for it to fail.
+
+`/rth test` pulses on every fake swing, so you can confirm the animation itself
+is working without waiting on a real twist.
+
+That is still the useful signal, because timing is the part you control. It is
+also what makes `window` and `latency` tunable: without knowing which presses
+landed, there is nothing to calibrate against.
+
 ## Contrast
 
 The ring has to stay readable over grass, lava, a lit floor and whatever a boss
@@ -192,6 +218,13 @@ single setting that matters most on a busy floor.
 close to colourblind, so the twist window is the brightest thing on the ring
 rather than the greenest. If you find yourself relying on colour to spot the
 window, something has gone wrong with the brightness ordering.
+
+**Size picks up where brightness runs out.** The window is white at full alpha
+and there is nothing brighter available, so it also draws thicker than the rest
+of the ring, which peripheral vision reads better than colour anyway.
+`/rth boost` sets how much thicker, from 1 for none to 3. Only the part you can
+actually press in swells, so a window the global cooldown has eaten stays thin
+and does not ask for attention it cannot repay.
 
 **Quiet states give their contrast back.** The ring dims to `quietAlpha` when
 there is genuinely nothing to decide: you are not swinging, or you are holding

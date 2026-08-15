@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.2.0
+
+- The twist window now draws thicker than the rest of the ring. It was already
+  white at full alpha, so there was no brighter available and the extra
+  salience had to come from size, which peripheral vision reads better than
+  colour anyway. `/rth boost` tunes it. Only the pressable part swells, so a
+  window the global cooldown has eaten stays thin.
+- A pulse now fires after a swing you twisted in time for. It plays once the
+  swing has landed, so it costs no attention during the window. What it detects
+  is that the finisher seal replaced the carrier inside the window before the
+  swing resolved, which is your timing being right; no combat log event reports
+  that a twist paid out, and it claims nothing more than it can see.
+- Both halves of that test are read from the combat log. Judging against aura
+  state lost the race whenever the timing was tight, because the client batches
+  UNIT_AURA but delivers the combat log immediately, so the confirmation failed
+  precisely when the twist had gone well.
+- `/rth test` pulses on every fake swing, so the animation can be checked
+  without waiting on a real twist.
+
 ## 1.1.1
 
 - The last safe cast post is now drawn on every live swing rather than only

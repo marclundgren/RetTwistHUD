@@ -17,7 +17,16 @@ local frame, brightHost, pip, pipBg, tick, tickBg, lastSafe, lastSafeBg, hint
 local sealIcon, sealIconBg
 local segments = {}
 local track = {}
+local pulseSegs = {}
 local shownAlpha = 0
+-- Segment geometry is worked out in Rebuild but needed again per frame, since
+-- the window thickens and thins as the swing moves through it.
+local ringSegLen, ringTrackLen = 0, 0
+
+local PULSE_SEGMENTS = 48
+local PULSE_TIME = 0.45
+local PULSE_GROWTH = 0.35
+local pulseUntil = 0
 
 -- Cooldown arcs, keyed to match ns.cooldowns, plus the seal countdown.
 local arcs = {
@@ -269,6 +278,7 @@ function Ring:Rebuild()
 	-- The groove overlaps itself so it reads as one solid dark ring even when
 	-- the lit segments on top of it are beads with gaps between them.
 	local trackLen = (TAU * r / n) + 1.5
+	ringSegLen, ringTrackLen = segLen, trackLen
 
 	local jcfg, ccfg = ArcLayouts(db)
 
@@ -308,11 +318,27 @@ function Ring:Rebuild()
 		tex:SetPoint("CENTER", frame, "CENTER", x, y)
 		if canRotate then tex:SetRotation(-a) end
 		tex.cr = nil
+		tex.thick = t
 		tex:Show()
 	end
 	for i = n + 1, #segments do
 		segments[i]:Hide()
 		if track[i] then track[i]:Hide() end
+	end
+
+	-- The confirmation pulse rides the bright layer so it is never dimmed, and
+	-- it is repositioned per frame while it plays rather than laid out here.
+	local pulseLen = max(2, (TAU * r / PULSE_SEGMENTS) * 0.8)
+	for i = 1, PULSE_SEGMENTS do
+		local tex = pulseSegs[i]
+		if not tex then
+			tex = brightHost:CreateTexture(nil, "OVERLAY")
+			tex:SetTexture(TEXTURE)
+			pulseSegs[i] = tex
+		end
+		tex:SetSize(pulseLen, max(2, t * 0.8))
+		if canRotate then tex:SetRotation(-((i - 0.5) / PULSE_SEGMENTS * TAU)) end
+		tex:Hide()
 	end
 
 	LayoutArc(arcs.judgement, jcfg, db, db.showJudgement)
@@ -362,6 +388,35 @@ function Ring:Rebuild()
 	pipBg:SetSize(pipSize + pad * 2, pipSize + pad * 2)
 	pipBg:SetVertexColor(0, 0, 0, ta)
 	if ta > 0 then pipBg:Show() else pipBg:Hide() end
+end
+
+function Ring:Confirm(now)
+	if not frame or not ns.db.showConfirm then return end
+	pulseUntil = now + PULSE_TIME
+end
+
+local function UpdatePulse(now, db)
+	if pulseUntil <= now then
+		if pulseUntil ~= 0 then
+			pulseUntil = 0
+			for i = 1, PULSE_SEGMENTS do pulseSegs[i]:Hide() end
+		end
+		return
+	end
+
+	local k = 1 - (pulseUntil - now) / PULSE_TIME
+	local radius = db.radius * (1 + PULSE_GROWTH * k)
+	local alpha = 1 - k
+	local c = ns.colors.window
+
+	for i = 1, PULSE_SEGMENTS do
+		local a = (i - 0.5) / PULSE_SEGMENTS * TAU
+		local tex = pulseSegs[i]
+		tex:ClearAllPoints()
+		tex:SetPoint("CENTER", brightHost, "CENTER", radius * sin(a), radius * cos(a))
+		tex:SetVertexColor(c[1], c[2], c[3], alpha)
+		tex:Show()
+	end
 end
 
 function Ring:Hide(now, dt)
@@ -424,6 +479,7 @@ function Ring:Update(now, dt)
 	SetArc(arcs.judgement, st.judgeFrac, ns.colors.judgement, ta)
 	SetArc(arcs.crusader, st.crusaderFrac, ns.colors.crusader, ta)
 	UpdateSeal(db, st, ta)
+	UpdatePulse(now, db)
 
 	-- Not swinging: hold a quiet outline in the seal colour with nothing moving.
 	if st.idle then
@@ -453,14 +509,19 @@ function Ring:Update(now, dt)
 	-- gcd itself, so bright never covers time you cannot actually press in.
 	local gcdCut = st.gcdP
 
+	local thin = db.thickness
+	local fat = max(2, thin * db.windowBoost)
+
 	for i = 1, n do
 		local tex = segments[i]
 		local sp = (i - 0.5) / n
 		local r, g, b, a
+		local pressable = false
 
 		if windowState ~= "none" and sp >= wStart and sp <= wEnd then
 			if windowState == "open" and not (gcdCut and sp <= gcdCut) then
 				r, g, b, a = colWindow[1], colWindow[2], colWindow[3], 1
+				pressable = true
 			else
 				r, g, b, a = colBlocked[1], colBlocked[2], colBlocked[3], 0.9
 			end
@@ -472,6 +533,17 @@ function Ring:Update(now, dt)
 		end
 
 		Paint(tex, r, g, b, a)
+
+		-- White at full alpha has nowhere brighter to go, so the window earns its
+		-- salience by thickening instead. Only the part you can actually press in
+		-- swells, so a window the global cooldown has eaten stays thin.
+		local want = pressable and fat or thin
+		if tex.thick ~= want then
+			tex.thick = want
+			tex:SetSize(ringSegLen, want)
+			local bg = track[i]
+			if bg then bg:SetSize(ringTrackLen, want + db.trackPad * 2) end
+		end
 	end
 
 	if st.lastSafeP then
