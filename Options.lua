@@ -158,7 +158,7 @@ end
 local function CreateWindow()
 	local panel = CreateFrame("Frame", "RetTwistHUDOptionsPanel", UIParent,
 		BackdropTemplateMixin and "BackdropTemplate" or nil)
-	panel:SetSize(620, 520)
+	panel:SetSize(620, 600)
 	panel:SetPoint("CENTER")
 	panel:SetFrameStrata("DIALOG")
 	panel:SetClampedToScreen(true)
@@ -235,6 +235,21 @@ function Options:Build()
 	Slider(c1, "Quiet dim", 0.1, 1, 0.05,
 		function() return db.quietAlpha end,
 		function(v) db.quietAlpha = v end, 2)
+
+	Gap(c1, 14)
+	Header(c1, "Active seal")
+	Check(c1, "Show the seal icon",
+		function() return db.showSeal end,
+		function(v) db.showSeal = v; Rebuild() end)
+	Check(c1, "Countdown ring around it",
+		function() return db.showSealDuration end,
+		function(v) db.showSealDuration = v; Rebuild() end)
+	Slider(c1, "Seal position", 0, 359, 5,
+		function() return db.sealAngle end,
+		function(v) db.sealAngle = v; Rebuild() end)
+	Slider(c1, "Seal icon size", 12, 64, 1,
+		function() return db.sealIconSize end,
+		function(v) db.sealIconSize = v; Rebuild() end)
 
 	Header(c2, "Timing")
 	Slider(c2, "Twist window (ms)", 50, 1500, 10,

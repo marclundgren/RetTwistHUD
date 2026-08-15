@@ -6,8 +6,14 @@ ns.state = {
 	visible = false,
 	idle = false, -- visible, but not currently swinging at anything
 	progress = 0,
-	seal = nil, -- "carrier", "finisher" or nil, from real auras only
+	seal = nil, -- twist role: "carrier", "finisher" or nil, from real auras only
+	sealKey = nil, -- which seal is actually up, including untwistable ones
+	sealIcon = nil,
+	sealDuration = 0,
+	sealExpires = 0,
+	sealFrac = nil, -- seal time remaining, 1 just cast, nil for no seal
 	displaySeal = nil, -- what the ring paints, which preview may override
+	displayIcon = nil,
 	windowState = "none", -- "open", "blocked" or "none"
 	windowStartP = 0,
 	windowEndP = 0,
@@ -38,6 +44,22 @@ local COMMAND_IDS = { 20375 }
 local BLOOD_IDS = { 31892, 348700 }
 local JUDGEMENT_IDS = { 20271 }
 local CRUSADER_IDS = { 35395 }
+
+-- Every seal, not just the two we twist between. Seal of the Crusader opens
+-- boss fights, and treating it as "no seal" made the ring hide itself under the
+-- seal-aware visibility modes. Ranks share a name, so one id each is enough.
+local SEALS = {
+	{ key = "crusader", ids = { 21082 } },
+	{ key = "command", ids = { 20375 } },
+	{ key = "blood", ids = { 31892, 348700 } },
+	{ key = "righteousness", ids = { 21084 } },
+	{ key = "justice", ids = { 20164 } },
+	{ key = "light", ids = { 20165 } },
+	{ key = "wisdom", ids = { 20166 } },
+	{ key = "vengeance", ids = { 31801 } },
+}
+
+ns.sealsByName = {}
 
 -- These two have C_Spell replacements on newer clients. TBC still has the
 -- globals, but falling back costs nothing and stops a nil call from taking the
@@ -95,31 +117,60 @@ function ns.ResolveSpells()
 	sp.judgementSlot = FindSpellBookSlot(sp.judgementName)
 	sp.crusaderName = FirstKnownName(CRUSADER_IDS)
 	sp.crusaderSlot = FindSpellBookSlot(sp.crusaderName)
+
+	-- The icon comes from the spell rather than the aura, because which slot
+	-- holds the texture in a UnitBuff return has moved between clients.
+	wipe(ns.sealsByName)
+	for i = 1, #SEALS do
+		local seal = SEALS[i]
+		for j = 1, #seal.ids do
+			local name, _, icon = GetSpellInfo(seal.ids[j])
+			if name then
+				ns.sealsByName[name] = { key = seal.key, icon = icon }
+			end
+		end
+	end
+	sp.carrierIcon = select(3, GetSpellInfo(ns.db.carrierIsCommand and 20375 or 31892))
 end
 
-local function GetBuffName(index)
-	if UnitBuff then return (UnitBuff("player", index)) end
+-- Duration and expiry sit at returns 5 and 6 on both the old and the modern
+-- UnitBuff signatures, so they can be read without sniffing which one this is.
+local function ReadBuff(index)
+	if UnitBuff then
+		local name, _, _, _, duration, expires = UnitBuff("player", index)
+		return name, duration, expires
+	end
 	if C_UnitAuras and C_UnitAuras.GetBuffDataByIndex then
 		local data = C_UnitAuras.GetBuffDataByIndex("player", index)
-		return data and data.name
+		if data then return data.name, data.duration, data.expirationTime end
 	end
 end
 
 local function RefreshSeal()
-	local sp = ns.spells
-	local seal
+	local sp, st = ns.spells, ns.state
+	st.seal, st.sealKey, st.sealIcon = nil, nil, nil
+	st.sealDuration, st.sealExpires = 0, 0
+
 	for i = 1, 40 do
-		local name = GetBuffName(i)
+		local name, duration, expires = ReadBuff(i)
 		if not name then break end
-		if name == sp.carrierName then
-			seal = "carrier"
-			break
-		elseif name == sp.finisherName then
-			seal = "finisher"
+
+		local info = ns.sealsByName[name]
+		if info then
+			st.sealKey = info.key
+			st.sealIcon = info.icon
+			st.sealDuration = duration or 0
+			st.sealExpires = expires or 0
+			-- The twist roles are a subset. Any other seal is still a seal, it
+			-- just has no twist pending.
+			if name == sp.carrierName then
+				st.seal = "carrier"
+			elseif name == sp.finisherName then
+				st.seal = "finisher"
+			end
 			break
 		end
 	end
-	ns.state.seal = seal
 end
 
 local function RefreshCooldown()
@@ -195,6 +246,15 @@ local function ComputeCooldowns(now, st)
 	local db = ns.db
 	st.judgeFrac = db.showJudgement and Fraction(ns.cooldowns.judgement, now) or nil
 	st.crusaderFrac = db.showCrusader and Fraction(ns.cooldowns.crusader, now) or nil
+
+	st.sealFrac = nil
+	if db.showSealDuration and st.sealDuration and st.sealDuration > 0 then
+		local remaining = st.sealExpires - now
+		if remaining > 0 then
+			st.sealFrac = remaining / st.sealDuration
+			if st.sealFrac > 1 then st.sealFrac = 1 end
+		end
+	end
 end
 
 local function Allowed(mode, inCombat, hasSeal)
@@ -217,6 +277,11 @@ local function UpdateState(now)
 	-- Kept apart from st.seal, which only ever reflects real auras, so that
 	-- leaving preview cannot strand a fake seal on the ring.
 	st.displaySeal = preview and "carrier" or st.seal
+	st.displayIcon = st.sealIcon
+	if preview and not st.displayIcon then
+		st.displayIcon = ns.spells.carrierIcon
+		st.sealFrac = st.sealFrac or 0.7
+	end
 
 	local swinging
 	if preview then
@@ -225,7 +290,8 @@ local function UpdateState(now)
 		st.visible = true
 	else
 		swinging = sw:Poll(now)
-		st.visible = Allowed(db.showMode, UnitAffectingCombat("player"), st.seal ~= nil)
+		-- Any seal counts here, not just the twistable pair.
+		st.visible = Allowed(db.showMode, UnitAffectingCombat("player"), st.sealKey ~= nil)
 	end
 
 	-- Visible without a swing is a real state: it shows which seal is up while

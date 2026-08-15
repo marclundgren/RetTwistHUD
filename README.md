@@ -28,6 +28,8 @@ model and the ground around you stay clear.
   so an empty bottom means Judgement is up.
 - A teal arc is the Crusader Strike cooldown, behaving the same way. Where it
   sits is up to you, see below.
+- An icon above your head is whichever seal you actually have up, with a thin
+  ring around it counting down the seal's remaining duration.
 
 Those two arcs plus the last safe cast post answer the whole question between
 them: an empty arc means the ability is up, and a bright post means you can
@@ -35,6 +37,24 @@ still spend a global cooldown on it without losing the twist.
 
 The window and the post are both drawn shifted back by your latency, because the
 press has to leave your client one round trip before the server checks the seal.
+
+## The seal icon
+
+The ring's colour tells you the seal's twist role: gold for the carrier, rose
+for the finisher, grey for anything else. That works for two seals and stops
+working past that, so the icon is what actually identifies the seal.
+
+Every paladin seal is tracked, not just the two you twist between. Seal of the
+Crusader opens boss fights and is a seal like any other, so it shows its own
+icon and it counts for the seal-aware visibility modes.
+
+The icon sits above your head by default. `/rth sealangle N` moves it anywhere
+around the ring, in degrees clockwise from the top, so 90 is the right side and
+180 is straight down. Bottom placements will collide with the cooldown arcs.
+
+Unlike everything else, the seal readout is never dimmed by the quiet setting.
+Which seal is up is exactly what you want to know when nothing else is
+happening, so it keeps full brightness at all times.
 
 ## Visibility
 
@@ -48,8 +68,7 @@ press has to leave your client one round trip before the server checks the seal.
 | `either` | In combat or with a seal up. The default. |
 | `both` | In combat and with a seal up. |
 
-`seal` counts only the two seals you twist between. Seal of the Crusader and the
-rest do not keep the ring on screen, since there is nothing to twist with them.
+`seal` counts any paladin seal, including Seal of the Crusader.
 
 When the ring is visible but you are not actually swinging at anything, it holds
 a quiet outline in your seal colour with no pip, no window and no ticks. That
@@ -119,6 +138,10 @@ from a spell the addon already looks up, so the art path cannot go stale.
 | `/rth judgement on\|off` | The Judgement cooldown arc. |
 | `/rth crusader on\|off` | The Crusader Strike cooldown arc. |
 | `/rth csplace MODE` | `stacked`, `mirrored`, `split` or `nested`. |
+| `/rth seal on\|off` | The active seal icon. |
+| `/rth sealduration on\|off` | The countdown ring around it. |
+| `/rth sealangle N` | Where it sits, degrees clockwise from the top. |
+| `/rth sealsize N` | Seal icon size. Default 26. |
 | `/rth show MODE` | When the ring is visible. See below. |
 | `/rth minimap on\|off` | Show the minimap button. |
 | `/rth swap` | Swap which seal is the carrier and which is the finisher. |
