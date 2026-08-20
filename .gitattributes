@@ -1,0 +1,2 @@
+# Textures are binary; never let a Windows clone apply line-ending conversion.
+*.tga binary

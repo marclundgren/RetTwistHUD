@@ -131,8 +131,9 @@ into place, and dragging the button itself moves it around the minimap edge.
 
 It is written out rather than pulled in from LibDBIcon. The addon has no other
 dependencies and a minimap button is about a hundred lines, so vendoring four
-library files to get one would cost more than it saves. Its icon is borrowed
-from a spell the addon already looks up, so the art path cannot go stale.
+library files to get one would cost more than it saves. Its icon is the addon
+logo in `Textures/Logo.tga`, which ships with the addon rather than being
+borrowed from a spell, so the button reads as this addon and not as a seal.
 
 ## Commands
 
@@ -306,4 +307,5 @@ the `## Interface:` line to imply it.
 | `Ring.lua` | The ring and the cooldown arcs, as coloured segment textures |
 | `Options.lua` | The interface options panel |
 | `MinimapButton.lua` | The minimap button |
+| `Textures/Logo.tga` | The addon logo, used as the minimap button icon |
 | `Core.lua` | Seal and cooldown state, window logic, event wiring |
