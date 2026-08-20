@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.1
+
+- The minimap button now wears the addon logo instead of a borrowed seal icon.
+  A seal icon told you which spell the art came from rather than which addon
+  the button opens, which is the one thing a minimap button has to say.
+- The logo ships as `Textures/Logo.tga` with a transparent surround, so it is
+  drawn whole and centred in the border ring rather than cropped square.
+
 ## 1.3.0
 
 - The ring now hides itself outside retribution spec, since seal twisting is a

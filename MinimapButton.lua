@@ -10,16 +10,7 @@ ns.MinimapButton = MinimapButton
 local ORBIT = 80 -- distance from the minimap centre, matches the usual convention
 local button
 
--- Borrow the icon from a spell we already look up, so the path can never be
--- wrong on a client where the art moved.
-local function IconPath()
-	local ids = { 35395, 20375, 31892 }
-	for i = 1, #ids do
-		local _, _, icon = GetSpellInfo(ids[i])
-		if icon then return icon end
-	end
-	return "Interface\\Icons\\INV_Misc_QuestionMark"
-end
+local ICON = "Interface\\AddOns\\" .. ADDON .. "\\Textures\\Logo.tga"
 
 local function UpdatePosition()
 	if not button then return end
@@ -53,11 +44,13 @@ function MinimapButton:Build()
 	bg:SetTexture("Interface\\Minimap\\UI-Minimap-Background")
 	bg:SetPoint("TOPLEFT", 7, -5)
 
+	-- The logo is round and carries its own outline on a transparent surround,
+	-- so it is drawn whole and centred in the border ring rather than cropped
+	-- the way a square spell icon has to be. The ring sits a pixel high.
 	local icon = button:CreateTexture(nil, "ARTWORK")
-	icon:SetSize(17, 17)
-	icon:SetTexture(IconPath())
-	icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-	icon:SetPoint("TOPLEFT", 7, -6)
+	icon:SetSize(20, 20)
+	icon:SetTexture(ICON)
+	icon:SetPoint("CENTER", button, "CENTER", 0, 1)
 	button.icon = icon
 
 	local border = button:CreateTexture(nil, "OVERLAY")
