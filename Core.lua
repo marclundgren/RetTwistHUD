@@ -166,6 +166,65 @@ function ns.ResolveSpells()
 	sp.carrierIcon = select(3, GetSpellInfo(ns.db.carrierIsCommand and 20375 or 31892))
 end
 
+-- Which talent tree has the most points in it. Seal twisting is a retribution
+-- rhythm, so a paladin tanking or healing has nothing to read here and can ask
+-- for the ring to stay out of the way entirely.
+--
+-- Paladin tabs are Holy, Protection, Retribution in that order on every client
+-- this addon runs on, so the third one is ours.
+local RET_TAB = 3
+
+-- GetTalentTabInfo changed shape between the Classic re-releases: TBC returns
+-- name, icon, pointsSpent, while later clients put an id first and pointsSpent
+-- fifth. Sniffing the type of the first return tells the two apart without
+-- having to know which client this is.
+local function TabPoints(tab)
+	if not GetTalentTabInfo then return nil end
+	local ok, a, _, c, _, e = pcall(GetTalentTabInfo, tab)
+	if not ok then return nil end
+	if type(a) == "number" then return tonumber(e) end
+	return tonumber(c)
+end
+
+-- Cached rather than read per frame, because the driver runs this every update
+-- and talents change a handful of times a year.
+ns.isRet = true
+
+-- Last hidden/shown state we told the player about, so a respec is announced
+-- once rather than on every talent event.
+local announcedHidden
+
+-- `quiet` syncs the announcement state without saying anything, for the callers
+-- that print their own confirmation, such as the option being toggled by hand.
+function ns.RefreshSpec(quiet)
+	local best, bestTab, total = -1, nil, 0
+	local tabs = GetNumTalentTabs and GetNumTalentTabs() or 3
+	for tab = 1, (tabs or 3) do
+		local pts = TabPoints(tab) or 0
+		total = total + pts
+		if pts > best then best, bestTab = pts, tab end
+	end
+
+	-- No points anywhere is either a fresh paladin or talent data the client
+	-- has not handed over yet. Neither is a spec to be wrong about, so the ring
+	-- stays available rather than vanishing for the whole of the early levels.
+	ns.isRet = (total == 0) or (bestTab == RET_TAB)
+
+	-- A ring that silently stops appearing after a respec reads as a broken
+	-- addon, so the reason is said out loud the first time it applies.
+	local hidden = (ns.db and ns.db.retOnly and not ns.isRet) or false
+	if hidden ~= announcedHidden then
+		-- Nothing is said the first time round unless the ring is actually
+		-- being withheld, so a retribution paladin logs in to silence.
+		if not quiet and (announcedHidden ~= nil or hidden) then
+			ns.Print(hidden
+				and "not retribution, so the ring stays hidden. |cffb4b2a9/rth ret off|r shows it in every spec."
+				or "ring is back.")
+		end
+		announcedHidden = hidden
+	end
+end
+
 -- Duration and expiry sit at returns 5 and 6 on both the old and the modern
 -- UnitBuff signatures, so they can be read without sniffing which one this is.
 local function ReadBuff(index)
@@ -359,8 +418,13 @@ local function UpdateState(now)
 		st.visible = true
 	else
 		swinging = sw:Poll(now)
-		-- Any seal counts here, not just the twistable pair.
+		-- Any seal counts here, not just the twistable pair. The spec gate sits
+		-- outside the show mode rather than inside it: it answers whether this
+		-- character has any use for the ring at all, which no visibility mode
+		-- can override. Preview skips it, so a prot paladin can still unlock and
+		-- position the ring for the spec they raid in.
 		st.visible = Allowed(db.showMode, UnitAffectingCombat("player"), st.sealKey ~= nil)
+			and (ns.isRet or not db.retOnly)
 	end
 
 	-- Visible without a swing is a real state: it shows which seal is up while
@@ -456,6 +520,7 @@ events:SetScript("OnEvent", function(self, event, ...)
 
 		playerGUID = UnitGUID("player")
 		ns.ResolveSpells()
+		ns.RefreshSpec()
 		ns.Ring:Create()
 
 		-- The panel leans on a lot of Blizzard templates. If any of them differ
@@ -473,6 +538,17 @@ events:SetScript("OnEvent", function(self, event, ...)
 		RefreshSeal()
 		RefreshCooldown()
 		RefreshUsable()
+
+		-- Talent events differ by client and registering an unknown one is a
+		-- hard error on the newer ones, so each is tried on its own.
+		for _, e in ipairs({
+			"PLAYER_TALENT_UPDATE",
+			"CHARACTER_POINTS_CHANGED",
+			"ACTIVE_TALENT_GROUP_CHANGED",
+			"PLAYER_ENTERING_WORLD",
+		}) do
+			pcall(self.RegisterEvent, self, e)
+		end
 
 		self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
 		self:RegisterEvent("SPELL_UPDATE_COOLDOWN")
@@ -504,5 +580,10 @@ events:SetScript("OnEvent", function(self, event, ...)
 	elseif event == "SPELLS_CHANGED" then
 		ns.ResolveSpells()
 		RefreshSeal()
+	elseif event == "PLAYER_TALENT_UPDATE" or event == "CHARACTER_POINTS_CHANGED"
+		or event == "ACTIVE_TALENT_GROUP_CHANGED" or event == "PLAYER_ENTERING_WORLD" then
+		-- Talent data is not always ready at login, so this is also the point
+		-- the first read gets corrected.
+		ns.RefreshSpec()
 	end
 end)

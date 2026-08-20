@@ -76,6 +76,18 @@ happening, so it keeps full brightness at all times.
 
 `seal` counts any paladin seal, including Seal of the Crusader.
 
+On top of the mode, **only in Retribution spec** hides the ring entirely
+whenever the tree with the most points in it is not Retribution. Seal twisting
+is a retribution rhythm, so tanking or healing on the same paladin has nothing
+to read here. It is on by default and `/rth ret off` turns it off if you want
+the ring in every spec.
+
+The minimap button and the options panel are never hidden by it, so the addon
+stays reachable from a spec it is not drawing in. Nor does it apply while the
+ring is unlocked or previewing swings, so you can still position the ring in
+prot for the spec you raid in. A paladin with no talent points yet counts as
+retribution, so the ring is there while you level.
+
 When the ring is visible but you are not actually swinging at anything, it holds
 a quiet outline in your seal colour with no pip, no window and no ticks. That
 tells you which seal is up while you run in, without anything moving to pull
@@ -151,6 +163,7 @@ from a spell the addon already looks up, so the art path cannot go stale.
 | `/rth sealangle N` | Where it sits, degrees clockwise from the top. |
 | `/rth sealsize N` | Seal icon size. Default 26. |
 | `/rth show MODE` | When the ring is visible. See below. |
+| `/rth ret on\|off` | Only show the ring in Retribution spec. Default on. |
 | `/rth minimap on\|off` | Show the minimap button. |
 | `/rth swap` | Swap which seal is the carrier and which is the finisher. |
 | `/rth reset` | Restore every default. |

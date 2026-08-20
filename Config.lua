@@ -58,6 +58,7 @@ local defaults = {
 	sealAngle = 0, -- degrees clockwise from the top of the ring
 	-- always | combat | seal | either | both
 	showMode = "either",
+	retOnly = true, -- hide the ring outside retribution spec, minimap button stays
 	minimap = { angle = 200, hide = false },
 	carrierIsCommand = true, -- carrier = Seal of Command, finisher = Seal of Blood
 }
@@ -148,6 +149,7 @@ local function Usage()
 	Print("  |cffb4b2a9/rth sealangle|r N   where it sits, degrees clockwise from top")
 	Print("  |cffb4b2a9/rth sealsize|r N    seal icon size, default 26")
 	Print("  |cffb4b2a9/rth show|r MODE     always, combat, seal, either, both")
+	Print("  |cffb4b2a9/rth ret|r on|off    only show the ring in retribution spec")
 	Print("  |cffb4b2a9/rth minimap|r on|off show the minimap button")
 	Print("  |cffb4b2a9/rth swap|r          swap which seal is carrier and which is finisher")
 	Print("  |cffb4b2a9/rth reset|r         restore every default")
@@ -341,6 +343,18 @@ local function HandleSlash(input)
 			Print("show takes one of: always, combat, seal, either, both.")
 			for k, v in pairs(ns.SHOW_MODES) do
 				Print("  |cffb4b2a9" .. k .. "|r  " .. v)
+			end
+		end
+	elseif cmd == "ret" or cmd == "retonly" then
+		local b = ToBool(rest:lower())
+		if b == nil then Print("ret takes on or off.") else
+			db.retOnly = b
+			if ns.RefreshSpec then ns.RefreshSpec(true) end
+			if b then
+				Print("ring limited to retribution spec, currently "
+					.. (ns.isRet and "on it." or "off it, so the ring stays hidden."))
+			else
+				Print("ring shown in every spec.")
 			end
 		end
 	elseif cmd == "swap" then
