@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.3.0
+
+- The ring now hides itself outside retribution spec, since seal twisting is a
+  retribution rhythm and a paladin who respecced to tank has nothing to read
+  here. Spec is taken as whichever talent tree holds the most points.
+- The minimap button and the options panel stay put, so the addon is still
+  reachable from a spec it is not drawing in, and the gate is skipped while the
+  ring is unlocked or previewing, so it can still be positioned in any spec.
+- On by default, `/rth ret off` or the "Only in Retribution spec" checkbox
+  turns it off for anyone who wants the ring regardless of spec. A paladin with
+  no points spent yet counts as retribution, so nothing vanishes while levelling
+  or before the client has handed over talent data.
+
 ## 1.2.0
 
 - The twist window now draws thicker than the rest of the ring. It was already

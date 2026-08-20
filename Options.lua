@@ -289,6 +289,12 @@ function Options:Build()
 		ns.SHOW_MODE_ORDER, ns.SHOW_MODES,
 		function() return db.showMode end,
 		function(v) db.showMode = v end)
+	Check(c2, "Only in Retribution spec",
+		function() return db.retOnly end,
+		function(v)
+			db.retOnly = v
+			if ns.RefreshSpec then ns.RefreshSpec(true) end
+		end)
 
 	Header(c3, "Cooldown arcs")
 	Check(c3, "Judgement",
