@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.4.0
+
+- A white line across the track now marks where the running global cooldown
+  ends. The dark global cooldown band already ended there, but an edge between
+  two shades is something you read rather than something you see, and the point
+  of the ring is to be glanceable. Now the instant your hands come free has a
+  mark of its own to plan against.
+- It fills the groove exactly rather than protruding from it, so it stays a
+  mark on the track rather than becoming a fourth thing orbiting around it.
+  White because it sits with the dark band either side of it, where brightness
+  alone is enough to separate it and a fifth hue would not have earned itself.
+- A global cooldown that outruns the swing used to leave the band clamped at
+  impact, which said only "not this swing" and nothing about where in the next
+  one. The line wraps onto the ring instead, since the ring is a lap, and draws
+  at half brightness to say the place is right but the lap is the next one.
+- Off by default: it answers a question you ask while planning rather than one
+  you ask mid-swing, and the ring's contrast belongs to the swing you are in.
+  `/rth gcdready on` or the "Next global cooldown line" checkbox turns it on,
+  independently of the band itself.
+
 ## 1.3.1
 
 - The minimap button now wears the addon logo instead of a borrowed seal icon.

@@ -18,7 +18,9 @@ ns.state = {
 	windowState = "none", -- "open", "blocked" or "none"
 	windowStartP = 0,
 	windowEndP = 0,
-	gcdP = nil, -- where the current global cooldown ends
+	gcdP = nil, -- where the current global cooldown ends, clamped to this swing
+	gcdReadyP = nil, -- the same instant unclamped, wrapped onto the ring
+	gcdReadyWrapped = false, -- true when it lands on the next lap, not this one
 	lastSafeP = nil, -- latest point a gcd spell can still be started
 	lastSafePassed = false,
 	judgeFrac = nil, -- judgement cooldown remaining, 1 just used, nil ready
@@ -434,6 +436,7 @@ local function UpdateState(now)
 	if not st.visible or st.idle then
 		st.windowState = "none"
 		st.gcdP = nil
+		st.gcdReadyP = nil
 		st.lastSafeP = nil
 		return
 	end
@@ -458,9 +461,25 @@ local function UpdateState(now)
 
 	local gcdEnd = ns.gcdEnd
 	st.gcdP = nil
+	st.gcdReadyP = nil
+	st.gcdReadyWrapped = false
 	if gcdEnd > now then
 		local gp = 1 - (sw.expires - gcdEnd) / dur
 		if gp > 0 then st.gcdP = (gp > 1) and 1 or gp end
+
+		-- The painted band has to stop at impact, but the instant your hands
+		-- come free does not, and that instant is the one you plan against. It
+		-- is kept unclamped here and wrapped onto the ring instead, since the
+		-- ring is a lap: a gcd ending after impact ends at the same place on
+		-- the ring, one swing later. Past two laps there is no swing left to
+		-- plan against, so nothing is drawn.
+		if db.showGCDReady then
+			if gp > 1 then
+				gp = gp - 1
+				st.gcdReadyWrapped = true
+			end
+			if gp > 0 and gp <= 1 then st.gcdReadyP = gp end
+		end
 	end
 
 	if st.displaySeal ~= "carrier" or (not preview and (ns.noMana or not ns.spells.finisherName)) then

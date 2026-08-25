@@ -14,6 +14,7 @@ local sin, cos, max, min, abs, rad, ceil = math.sin, math.cos, math.max, math.mi
 local canRotate
 
 local frame, brightHost, pip, pipBg, tick, tickBg, lastSafe, lastSafeBg, hint
+local gcdReady
 local sealIcon, sealIconBg
 local segments = {}
 local track = {}
@@ -205,6 +206,10 @@ function Ring:Create()
 	lastSafe:SetTexture(TEXTURE)
 	lastSafe:Hide()
 
+	gcdReady = frame:CreateTexture(nil, "OVERLAY")
+	gcdReady:SetTexture(TEXTURE)
+	gcdReady:Hide()
+
 	pipBg = Backing(frame, 2)
 	pip = frame:CreateTexture(nil, "OVERLAY")
 	pip:SetTexture(TEXTURE)
@@ -383,6 +388,13 @@ function Ring:Rebuild()
 	lastSafeBg:SetSize(lsW + pad * 2, lsH + pad * 2)
 	lastSafeBg:SetVertexColor(0, 0, 0, ta)
 
+	-- A rung filling the groove exactly, rather than something protruding from
+	-- it, so it reads as a mark on the track instead of a fourth thing orbiting
+	-- around it. It carries no dark backing of its own: the track it sits in is
+	-- already that, and a backing would be drawn under the ring segments and
+	-- hidden by them anyway.
+	gcdReady:SetSize(max(2, t * 0.5), t + pad * 2)
+
 	local pipSize = t * 2.0
 	pip:SetSize(pipSize, pipSize)
 	pipBg:SetSize(pipSize + pad * 2, pipSize + pad * 2)
@@ -492,6 +504,7 @@ function Ring:Update(now, dt)
 		tickBg:Hide()
 		lastSafe:Hide()
 		lastSafeBg:Hide()
+		gcdReady:Hide()
 		return
 	end
 
@@ -564,6 +577,22 @@ function Ring:Update(now, dt)
 	else
 		lastSafe:Hide()
 		lastSafeBg:Hide()
+	end
+
+	if st.gcdReadyP then
+		local a = st.gcdReadyP * TAU
+		local x, y = db.radius * sin(a), db.radius * cos(a)
+		gcdReady:ClearAllPoints()
+		gcdReady:SetPoint("CENTER", frame, "CENTER", x, y)
+		if canRotate then gcdReady:SetRotation(-a) end
+		local c = ns.colors.gcdReady
+		-- Faint when the gcd outlasts this swing. The place on the ring is
+		-- right and the lap is not, which is exactly what half brightness has
+		-- meant here since the last safe post started dimming once passed.
+		gcdReady:SetVertexColor(c[1], c[2], c[3], st.gcdReadyWrapped and 0.5 or 1)
+		gcdReady:Show()
+	else
+		gcdReady:Hide()
 	end
 
 	if db.showPip then

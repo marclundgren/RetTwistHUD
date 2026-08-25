@@ -17,6 +17,9 @@ ns.colors = {
 	pip = { 1.00, 1.00, 0.98 }, -- the travelling swing marker
 	impact = { 1.00, 1.00, 0.98 }, -- the tick at the top of the ring
 	lastSafe = { 0.45, 0.72, 1.00 }, -- last point you can start a gcd spell
+	-- White rather than a hue of its own, because it sits in the groove with the
+	-- dark gcd band either side of it and brightness alone separates it there.
+	gcdReady = { 1.00, 1.00, 0.98 }, -- line where the running gcd ends
 	judgement = { 0.72, 0.64, 1.00 }, -- judgement cooldown arc
 	crusader = { 0.35, 0.88, 0.85 }, -- crusader strike cooldown arc
 	sealTime = { 0.88, 0.86, 0.80 }, -- ring around the seal icon, time remaining
@@ -44,6 +47,9 @@ local defaults = {
 	windowBoost = 1.8, -- how much thicker the window is than the rest of the ring
 	showConfirm = true, -- pulse after a swing you twisted in time for
 	showGCD = true,
+	-- Off by default. It answers a planning question rather than a pressing one,
+	-- and the ring's contrast budget belongs to the swing you are in.
+	showGCDReady = false, -- line where the running gcd ends
 	showPip = true,
 	showLastSafe = true,
 	showJudgement = true,
@@ -140,6 +146,7 @@ local function Usage()
 	Print("  |cffb4b2a9/rth boost|r N       twist window thickness, 1 to 3, default 1.8")
 	Print("  |cffb4b2a9/rth confirm|r on|off  pulse after a swing you twisted in time for")
 	Print("  |cffb4b2a9/rth gcd|r on|off    paint the current global cooldown on the ring")
+	Print("  |cffb4b2a9/rth gcdready|r on|off  line where that global cooldown ends")
 	Print("  |cffb4b2a9/rth lastsafe|r on|off  mark the last gcd spell you can start")
 	Print("  |cffb4b2a9/rth judgement|r on|off arc for the judgement cooldown")
 	Print("  |cffb4b2a9/rth crusader|r on|off  arc for the crusader strike cooldown")
@@ -271,6 +278,12 @@ local function HandleSlash(input)
 		if b == nil then Print("gcd takes on or off.") else
 			db.showGCD = b
 			Print("global cooldown display " .. (b and "on." or "off."))
+		end
+	elseif cmd == "gcdready" then
+		local b = ToBool(rest:lower())
+		if b == nil then Print("gcdready takes on or off.") else
+			db.showGCDReady = b
+			Print("next global cooldown line " .. (b and "on." or "off."))
 		end
 	elseif cmd == "lastsafe" then
 		local b = ToBool(rest:lower())
