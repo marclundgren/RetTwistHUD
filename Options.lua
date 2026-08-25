@@ -158,7 +158,7 @@ end
 local function CreateWindow()
 	local panel = CreateFrame("Frame", "RetTwistHUDOptionsPanel", UIParent,
 		BackdropTemplateMixin and "BackdropTemplate" or nil)
-	panel:SetSize(620, 600)
+	panel:SetSize(620, 640)
 	panel:SetPoint("CENTER")
 	panel:SetFrameStrata("DIALOG")
 	panel:SetClampedToScreen(true)
@@ -273,6 +273,9 @@ function Options:Build()
 	Check(c2, "Global cooldown arc",
 		function() return db.showGCD end,
 		function(v) db.showGCD = v end)
+	Check(c2, "Next global cooldown line",
+		function() return db.showGCDReady end,
+		function(v) db.showGCDReady = v end)
 	Check(c2, "Last safe cast post",
 		function() return db.showLastSafe end,
 		function(v) db.showLastSafe = v end)

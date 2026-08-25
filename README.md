@@ -20,6 +20,11 @@ model and the ground around you stay clear.
   the twist is actually available.
 - A dark segment ahead of the pip is your global cooldown. If it runs into the
   window, the window greys out and you know a swing early not to bother.
+- A white line across the track, off by default, is where that global cooldown
+  ends and your next spell comes back. It is only there while a global cooldown
+  is actually running, and it fades to half brightness when the cooldown
+  outruns this swing, which means the place on the ring is right but the lap is
+  the next one. `/rth gcdready on` turns it on.
 - A blue post crossing the ring is the last moment you can start a global
   cooldown spell and still have it clear before the twist window. It dims once
   the pip is past it, so bright means go ahead and dim means hold.
@@ -29,6 +34,12 @@ so it is drawn on every live swing whatever you are holding. Only the cost of
 passing it changes: with Seal of Command up you lose a filler ability, with Seal
 of Blood up you lose the chance to swap back and the twist goes with it, and
 with any other seal it is the point your setup has to be finished by.
+
+The line and the post are the two ends of one stretch, the earliest and the
+latest a global cooldown spell can start, so what you can still fit into this
+swing is what fits between them. The line is off by default because it answers
+a question you ask while planning rather than one you ask mid-swing, and the
+ring only has so much contrast to spend.
 - A violet arc on an outer radius at the bottom is the Judgement cooldown. It
   shrinks toward the middle as the cooldown runs and vanishes when it is ready,
   so an empty bottom means Judgement is up.
@@ -155,6 +166,7 @@ borrowed from a spell, so the button reads as this addon and not as a seal.
 | `/rth boost N` | Twist window thickness, 1 to 3. Default 1.8. |
 | `/rth confirm on\|off` | The twist confirmation pulse. |
 | `/rth gcd on\|off` | Paint the current global cooldown on the ring. |
+| `/rth gcdready on\|off` | The line where that global cooldown ends. Off by default. |
 | `/rth lastsafe on\|off` | The last safe cast post. |
 | `/rth judgement on\|off` | The Judgement cooldown arc. |
 | `/rth crusader on\|off` | The Crusader Strike cooldown arc. |
