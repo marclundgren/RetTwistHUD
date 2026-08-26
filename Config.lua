@@ -21,7 +21,6 @@ ns.colors = {
 	-- dark gcd band either side of it and brightness alone separates it there.
 	gcdReady = { 1.00, 1.00, 0.98 }, -- line where the running gcd ends
 	judgement = { 0.72, 0.64, 1.00 }, -- judgement cooldown arc
-	crusader = { 0.35, 0.88, 0.85 }, -- crusader strike cooldown arc
 	sealTime = { 0.88, 0.86, 0.80 }, -- ring around the seal icon, time remaining
 }
 
@@ -54,10 +53,6 @@ local defaults = {
 	showLastSafe = true,
 	showJudgement = true,
 	judgementSpan = 55, -- degrees the judgement arc covers when freshly used
-	showCrusader = true,
-	crusaderSpan = 45, -- deliberately shorter than judgement so the two
-	-- silhouettes differ before colour resolves
-	crusaderPlacement = "stacked", -- stacked | mirrored | split | nested
 	showSeal = true, -- icon of whichever seal is actually up
 	showSealDuration = true, -- thin ring around it counting the seal down
 	sealIconSize = 26,
@@ -77,14 +72,6 @@ ns.SHOW_MODES = {
 	both = "in combat and with a seal up",
 }
 ns.SHOW_MODE_ORDER = { "always", "combat", "seal", "either", "both" }
-
-ns.CS_PLACEMENTS = {
-	stacked = "stacked just outside judgement",
-	mirrored = "mirrored on the right side",
-	split = "sharing one band with judgement",
-	nested = "nested inside the ring",
-}
-ns.CS_PLACEMENT_ORDER = { "stacked", "mirrored", "split", "nested" }
 
 local function CopyDefaults(src, dst)
 	if type(dst) ~= "table" then dst = {} end
@@ -149,8 +136,6 @@ local function Usage()
 	Print("  |cffb4b2a9/rth gcdready|r on|off  line where that global cooldown ends")
 	Print("  |cffb4b2a9/rth lastsafe|r on|off  mark the last gcd spell you can start")
 	Print("  |cffb4b2a9/rth judgement|r on|off arc for the judgement cooldown")
-	Print("  |cffb4b2a9/rth crusader|r on|off  arc for the crusader strike cooldown")
-	Print("  |cffb4b2a9/rth csplace|r MODE  stacked, mirrored, split, nested")
 	Print("  |cffb4b2a9/rth seal|r on|off   icon of the seal you have up")
 	Print("  |cffb4b2a9/rth sealduration|r on|off  countdown ring around that icon")
 	Print("  |cffb4b2a9/rth sealangle|r N   where it sits, degrees clockwise from top")
@@ -298,13 +283,6 @@ local function HandleSlash(input)
 			ns.Ring:Rebuild()
 			Print("judgement arc " .. (b and "on." or "off."))
 		end
-	elseif cmd == "crusader" or cmd == "cs" then
-		local b = ToBool(rest:lower())
-		if b == nil then Print("crusader takes on or off.") else
-			db.showCrusader = b
-			ns.Ring:Rebuild()
-			Print("crusader strike arc " .. (b and "on." or "off."))
-		end
 	elseif cmd == "seal" then
 		local b = ToBool(rest:lower())
 		if b == nil then Print("seal takes on or off.") else
@@ -334,18 +312,6 @@ local function HandleSlash(input)
 			Print("seal icon " .. num .. " px.")
 		else
 			Print("sealsize takes a number between 12 and 64.")
-		end
-	elseif cmd == "csplace" then
-		local mode = rest:lower()
-		if ns.CS_PLACEMENTS[mode] then
-			db.crusaderPlacement = mode
-			ns.Ring:Rebuild()
-			Print("crusader strike " .. ns.CS_PLACEMENTS[mode] .. ".")
-		else
-			Print("csplace takes one of: stacked, mirrored, split, nested.")
-			for _, k in ipairs(ns.CS_PLACEMENT_ORDER) do
-				Print("  |cffb4b2a9" .. k .. "|r  " .. ns.CS_PLACEMENTS[k])
-			end
 		end
 	elseif cmd == "show" then
 		local mode = rest:lower()

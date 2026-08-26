@@ -6,7 +6,6 @@ ns.Ring = Ring
 local TEXTURE = "Interface\\Buttons\\WHITE8X8"
 local TAU = math.pi * 2
 local PI = math.pi
-local HALF_PI = math.pi / 2
 local sin, cos, max, min, abs, rad, ceil = math.sin, math.cos, math.max, math.min, math.abs, math.rad, math.ceil
 
 -- Older clients do not all support Texture:SetRotation. If it is missing the
@@ -32,7 +31,6 @@ local pulseUntil = 0
 -- Cooldown arcs, keyed to match ns.cooldowns, plus the seal countdown.
 local arcs = {
 	judgement = { segs = {}, track = {}, count = 0, drain = "center" },
-	crusader = { segs = {}, track = {}, count = 0, drain = "center" },
 	seal = { segs = {}, track = {}, count = 0, drain = "fromA0" },
 }
 
@@ -58,31 +56,12 @@ local function Backing(parent, sublevel)
 	return tex
 end
 
--- Where each cooldown arc sits. Angles run clockwise from the top of the ring,
--- so PI is the bottom and HALF_PI is the right side.
-local function ArcLayouts(db)
-	local r, t, pad = db.radius, db.thickness, db.trackPad
-	local jr = r + t * 3.2 + pad
+-- Where the judgement cooldown arc sits. Angles run clockwise from the top of
+-- the ring, so PI is the bottom of it.
+local function ArcLayout(db)
+	local jr = db.radius + db.thickness * 3.2 + db.trackPad
 	local jSpan = rad(db.judgementSpan)
-	local cSpan = rad(db.crusaderSpan)
-
-	local j = { radius = jr, a0 = PI - jSpan, a1 = PI + jSpan, drain = "center" }
-	local c
-
-	local place = db.crusaderPlacement
-	if place == "mirrored" then
-		c = { radius = jr, a0 = HALF_PI - cSpan, a1 = HALF_PI + cSpan, drain = "center" }
-	elseif place == "split" then
-		-- One band divided at the bottom, each half retracting toward the seam.
-		j = { radius = jr, a0 = PI, a1 = PI + jSpan, drain = "fromA0" }
-		c = { radius = jr, a0 = PI, a1 = PI - cSpan, drain = "fromA0" }
-	elseif place == "nested" then
-		c = { radius = r - t * 3.2 - pad, a0 = PI - cSpan, a1 = PI + cSpan, drain = "center" }
-	else
-		c = { radius = jr + t * 2.4 + pad, a0 = PI - cSpan, a1 = PI + cSpan, drain = "center" }
-	end
-
-	return j, c
+	return { radius = jr, a0 = PI - jSpan, a1 = PI + jSpan, drain = "center" }
 end
 
 local function LayoutArc(arc, cfg, db, enabled)
@@ -285,14 +264,14 @@ function Ring:Rebuild()
 	local trackLen = (TAU * r / n) + 1.5
 	ringSegLen, ringTrackLen = segLen, trackLen
 
-	local jcfg, ccfg = ArcLayouts(db)
+	local jcfg = ArcLayout(db)
 
 	local iconSize = db.sealIconSize
 	local sealR = r + t + pad + iconSize * 0.62 + 4
 	local sa = rad(db.sealAngle)
 	local sx, sy = sealR * sin(sa), sealR * cos(sa)
 
-	local outer = max(r + t * 2, jcfg.radius, ccfg.radius, sealR + iconSize * 0.8) + t + pad * 2
+	local outer = max(r + t * 2, jcfg.radius, sealR + iconSize * 0.8) + t + pad * 2
 	frame:SetSize(outer * 2, outer * 2)
 	self:Reposition()
 
@@ -347,7 +326,6 @@ function Ring:Rebuild()
 	end
 
 	LayoutArc(arcs.judgement, jcfg, db, db.showJudgement)
-	LayoutArc(arcs.crusader, ccfg, db, db.showCrusader)
 
 	sealIcon:SetSize(iconSize, iconSize)
 	sealIcon:ClearAllPoints()
@@ -489,7 +467,6 @@ function Ring:Update(now, dt)
 	local ta = db.trackAlpha
 
 	SetArc(arcs.judgement, st.judgeFrac, ns.colors.judgement, ta)
-	SetArc(arcs.crusader, st.crusaderFrac, ns.colors.crusader, ta)
 	UpdateSeal(db, st, ta)
 	UpdatePulse(now, db)
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.0
+
+- The Crusader Strike cooldown arc is gone, along with its span, its colour and
+  the four placement layouts. Judgement is the cooldown a twist actually has to
+  be planned around; Crusader Strike is a filler you press when the rhythm has
+  already left you room, so a second orbiting arc was spending contrast on a
+  question you were not asking mid-swing.
+- What is left is one arc at the bottom in one place, which makes the empty
+  bottom mean exactly one thing again. `/rth crusader` and `/rth csplace` are
+  removed, and the options panel drops the checkbox, the span slider and the
+  placement dropdown with them.
+
 ## 1.4.0
 
 - A white line across the track now marks where the running global cooldown
