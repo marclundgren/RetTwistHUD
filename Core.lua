@@ -24,7 +24,6 @@ ns.state = {
 	lastSafeP = nil, -- latest point a gcd spell can still be started
 	lastSafePassed = false,
 	judgeFrac = nil, -- judgement cooldown remaining, 1 just used, nil ready
-	crusaderFrac = nil, -- same for crusader strike
 }
 
 ns.spells = {}
@@ -33,7 +32,6 @@ ns.gcdLength = 1.5 -- learned from the first real gcd we observe
 -- Tracked ability cooldowns, keyed the same way the arcs are.
 ns.cooldowns = {
 	judgement = { start = 0, duration = 0 },
-	crusader = { start = 0, duration = 0 },
 }
 ns.noMana = false
 ns.testing = false
@@ -78,7 +76,6 @@ local TEST_SPEED = 3.6
 local COMMAND_IDS = { 20375 }
 local BLOOD_IDS = { 31892, 348700 }
 local JUDGEMENT_IDS = { 20271 }
-local CRUSADER_IDS = { 35395 }
 
 -- Every seal, not just the two we twist between. Seal of the Crusader opens
 -- boss fights, and treating it as "no seal" made the ring hide itself under the
@@ -150,8 +147,6 @@ function ns.ResolveSpells()
 
 	sp.judgementName = FirstKnownName(JUDGEMENT_IDS)
 	sp.judgementSlot = FindSpellBookSlot(sp.judgementName)
-	sp.crusaderName = FirstKnownName(CRUSADER_IDS)
-	sp.crusaderSlot = FindSpellBookSlot(sp.crusaderName)
 
 	-- The icon comes from the spell rather than the aura, because which slot
 	-- holds the texture in a UnitBuff return has moved between clients.
@@ -309,8 +304,8 @@ local function RefreshCooldown()
 		ns.gcdEnd = 0
 	end
 
-	-- Judgement is 8 or 10s and Crusader Strike is 6s, so anything at or under
-	-- the gcd length is just the gcd and not a real cooldown worth drawing.
+	-- Judgement is 8 or 10s, so anything at or under the gcd length is just the
+	-- gcd and not a real cooldown worth drawing.
 	for key, cd in pairs(ns.cooldowns) do
 		local s, d
 		local slot, name = sp[key .. "Slot"], sp[key .. "Name"]
@@ -365,7 +360,6 @@ end
 local function ComputeCooldowns(now, st)
 	local db = ns.db
 	st.judgeFrac = db.showJudgement and Fraction(ns.cooldowns.judgement, now) or nil
-	st.crusaderFrac = db.showCrusader and Fraction(ns.cooldowns.crusader, now) or nil
 
 	st.sealFrac = nil
 	if db.showSealDuration and st.sealDuration and st.sealDuration > 0 then

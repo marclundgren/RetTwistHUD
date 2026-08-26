@@ -43,14 +43,12 @@ ring only has so much contrast to spend.
 - A violet arc on an outer radius at the bottom is the Judgement cooldown. It
   shrinks toward the middle as the cooldown runs and vanishes when it is ready,
   so an empty bottom means Judgement is up.
-- A teal arc is the Crusader Strike cooldown, behaving the same way. Where it
-  sits is up to you, see below.
 - An icon above your head is whichever seal you actually have up, with a thin
   ring around it counting down the seal's remaining duration.
 
-Those two arcs plus the last safe cast post answer the whole question between
-them: an empty arc means the ability is up, and a bright post means you can
-still spend a global cooldown on it without losing the twist.
+The arc and the last safe cast post answer the whole question between them: an
+empty arc means Judgement is up, and a bright post means you can still spend a
+global cooldown on it without losing the twist.
 
 The window and the post are both drawn shifted back by your latency, because the
 press has to leave your client one round trip before the server checks the seal.
@@ -67,7 +65,7 @@ icon and it counts for the seal-aware visibility modes.
 
 The icon sits above your head by default. `/rth sealangle N` moves it anywhere
 around the ring, in degrees clockwise from the top, so 90 is the right side and
-180 is straight down. Bottom placements will collide with the cooldown arcs.
+180 is straight down. Bottom placements will collide with the Judgement arc.
 
 Unlike everything else, the seal readout is never dimmed by the quiet setting.
 Which seal is up is exactly what you want to know when nothing else is
@@ -103,20 +101,6 @@ When the ring is visible but you are not actually swinging at anything, it holds
 a quiet outline in your seal colour with no pip, no window and no ticks. That
 tells you which seal is up while you run in, without anything moving to pull
 your eye.
-
-## Crusader Strike placement
-
-Four layouts, all reachable from the options panel or `/rth csplace`.
-
-| Mode | Layout |
-| --- | --- |
-| `stacked` | Second arc just outside Judgement. Both cooldowns in one glance zone, and Judgement's geometry is untouched. The default. |
-| `mirrored` | Its own arc on the right of the ring. Position alone tells them apart, at the cost of a second place to look. |
-| `split` | One bottom band divided at six o'clock, each half retracting toward the seam. One object, but half the resolution each. |
-| `nested` | Inside the ring. Uses otherwise empty space, but can land on your feet at close camera distances. |
-
-Crusader Strike defaults to a shorter span than Judgement so the two silhouettes
-differ before colour resolves.
 
 ## Options panel
 
@@ -169,8 +153,6 @@ borrowed from a spell, so the button reads as this addon and not as a seal.
 | `/rth gcdready on\|off` | The line where that global cooldown ends. Off by default. |
 | `/rth lastsafe on\|off` | The last safe cast post. |
 | `/rth judgement on\|off` | The Judgement cooldown arc. |
-| `/rth crusader on\|off` | The Crusader Strike cooldown arc. |
-| `/rth csplace MODE` | `stacked`, `mirrored`, `split` or `nested`. |
 | `/rth seal on\|off` | The active seal icon. |
 | `/rth sealduration on\|off` | The countdown ring around it. |
 | `/rth sealangle N` | Where it sits, degrees clockwise from the top. |

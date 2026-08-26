@@ -299,23 +299,13 @@ function Options:Build()
 			if ns.RefreshSpec then ns.RefreshSpec(true) end
 		end)
 
-	Header(c3, "Cooldown arcs")
+	Header(c3, "Cooldown arc")
 	Check(c3, "Judgement",
 		function() return db.showJudgement end,
 		function(v) db.showJudgement = v; Rebuild() end)
 	Slider(c3, "Judgement span", 10, 90, 5,
 		function() return db.judgementSpan end,
 		function(v) db.judgementSpan = v; Rebuild() end)
-	Check(c3, "Crusader Strike",
-		function() return db.showCrusader end,
-		function(v) db.showCrusader = v; Rebuild() end)
-	Slider(c3, "Crusader Strike span", 10, 90, 5,
-		function() return db.crusaderSpan end,
-		function(v) db.crusaderSpan = v; Rebuild() end)
-	Dropdown(c3, "Crusader Strike placement",
-		ns.CS_PLACEMENT_ORDER, ns.CS_PLACEMENTS,
-		function() return db.crusaderPlacement end,
-		function(v) db.crusaderPlacement = v; Rebuild() end)
 
 	Gap(c3, 14)
 	Header(c3, "Behaviour")
